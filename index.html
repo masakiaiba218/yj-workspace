@@ -832,7 +832,8 @@
   .schedule-day .day-header {
     display: flex;
     justify-content: center;
-    align-items: baseline;
+    align-items: center;
+    gap: 4px;
     margin-bottom: 4px;
   }
   .schedule-day .day-date { font-size: 14px; font-weight: 700; color: var(--text-primary); }
@@ -878,6 +879,27 @@
     transition: opacity .15s;
   }
   .schedule-day:hover .schedule-add-hint { opacity: 1; }
+  .schedule-day .day-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 0 4px;
+    border-radius: 3px;
+    line-height: 1.6;
+    flex-shrink: 0;
+  }
+  .schedule-day .day-badge.rest { background: #16a34a; color: #fff; }
+  .schedule-day .day-badge.work { background: #dc2626; color: #fff; }
+  .schedule-day .day-info {
+    font-size: 10px;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.2;
+    margin-bottom: 2px;
+  }
+  .schedule-day .day-info.festival { color: #dc2626; }
+  .schedule-day .day-info.solar { color: #15803d; }
+  .schedule-day.is-rest { background: #f0fdf4; }
+  .schedule-day.is-work { background: #fef2f2; }
 
   @media (max-width: 768px) {
     .schedule-grid {
@@ -2370,6 +2392,71 @@ let scheduleMonthOffset = 0;
 // Base: Aug 24, 2026 (Monday) = 预备周; Aug 31 = 第一周; Sep 7 = 第二周 ...
 const SCHEDULE_BASE_MONDAY = new Date(2026, 7, 24);
 
+// ========== Holiday & Solar Term Data ==========
+var FESTIVAL_MAP = {
+  // 2025
+  '2025-01-01': '元旦', '2025-01-28': '除夕', '2025-01-29': '春节',
+  '2025-04-04': '清明节', '2025-05-01': '劳动节', '2025-05-31': '端午节',
+  '2025-10-01': '国庆节', '2025-10-06': '中秋节',
+  // 2026
+  '2026-01-01': '元旦', '2026-01-26': '腊八节', '2026-02-10': '小年',
+  '2026-02-16': '除夕', '2026-02-17': '春节', '2026-03-03': '元宵节',
+  '2026-04-05': '清明节', '2026-05-01': '劳动节', '2026-06-19': '端午节',
+  '2026-08-19': '七夕', '2026-08-27': '中元节', '2026-09-25': '中秋节',
+  '2026-10-01': '国庆节', '2026-10-18': '重阳节',
+  // 2027
+  '2027-01-01': '元旦', '2027-02-05': '除夕', '2027-02-06': '春节',
+  '2027-02-20': '元宵节',
+};
+
+var SOLAR_TERM_MAP = {
+  // 2025
+  '2025-01-05': '小寒', '2025-01-20': '大寒', '2025-02-03': '立春', '2025-02-18': '雨水',
+  '2025-03-05': '惊蛰', '2025-03-20': '春分', '2025-04-04': '清明', '2025-04-20': '谷雨',
+  '2025-05-05': '立夏', '2025-05-21': '小满', '2025-06-05': '芒种', '2025-06-21': '夏至',
+  '2025-07-07': '小暑', '2025-07-22': '大暑', '2025-08-07': '立秋', '2025-08-23': '处暑',
+  '2025-09-07': '白露', '2025-09-23': '秋分', '2025-10-08': '寒露', '2025-10-23': '霜降',
+  '2025-11-07': '立冬', '2025-11-22': '小雪', '2025-12-07': '大雪', '2025-12-21': '冬至',
+  // 2026
+  '2026-01-05': '小寒', '2026-01-20': '大寒', '2026-02-04': '立春', '2026-02-18': '雨水',
+  '2026-03-05': '惊蛰', '2026-03-20': '春分', '2026-04-05': '清明', '2026-04-20': '谷雨',
+  '2026-05-05': '立夏', '2026-05-21': '小满', '2026-06-05': '芒种', '2026-06-21': '夏至',
+  '2026-07-07': '小暑', '2026-07-23': '大暑', '2026-08-07': '立秋', '2026-08-23': '处暑',
+  '2026-09-07': '白露', '2026-09-23': '秋分', '2026-10-08': '寒露', '2026-10-23': '霜降',
+  '2026-11-07': '立冬', '2026-11-22': '小雪', '2026-12-07': '大雪', '2026-12-22': '冬至',
+  // 2027
+  '2027-01-05': '小寒', '2027-01-20': '大寒', '2027-02-04': '立春', '2027-02-19': '雨水',
+  '2027-03-06': '惊蛰', '2027-03-21': '春分', '2027-04-05': '清明', '2027-04-20': '谷雨',
+  '2027-05-06': '立夏', '2027-05-21': '小满', '2027-06-06': '芒种', '2027-06-21': '夏至',
+  '2027-07-07': '小暑', '2027-07-23': '大暑', '2027-08-08': '立秋', '2027-08-23': '处暑',
+  '2027-09-08': '白露', '2027-09-23': '秋分', '2027-10-08': '寒露', '2027-10-23': '霜降',
+  '2027-11-07': '立冬', '2027-11-22': '小雪', '2027-12-07': '大雪', '2027-12-22': '冬至',
+};
+
+// 2026 holiday rest period (休) and make-up work days (班)
+var REST_DAYS_2026 = {};
+['2026-01-01','2026-01-02','2026-01-03',
+ '2026-02-15','2026-02-16','2026-02-17','2026-02-18','2026-02-19','2026-02-20','2026-02-21','2026-02-22','2026-02-23',
+ '2026-04-04','2026-04-05','2026-04-06',
+ '2026-05-01','2026-05-02','2026-05-03','2026-05-04','2026-05-05',
+ '2026-06-19','2026-06-20','2026-06-21',
+ '2026-09-25','2026-09-26','2026-09-27',
+ '2026-10-01','2026-10-02','2026-10-03','2026-10-04','2026-10-05','2026-10-06','2026-10-07'
+].forEach(function(d) { REST_DAYS_2026[d] = true; });
+
+var WORK_DAYS_2026 = {};
+['2026-01-04','2026-02-14','2026-02-28','2026-05-09','2026-09-20','2026-10-10'
+].forEach(function(d) { WORK_DAYS_2026[d] = true; });
+
+function getCalendarDayInfo(dateKey) {
+  var info = { festival: '', solarTerm: '', rest: false, work: false };
+  if (FESTIVAL_MAP[dateKey]) info.festival = FESTIVAL_MAP[dateKey];
+  if (SOLAR_TERM_MAP[dateKey]) info.solarTerm = SOLAR_TERM_MAP[dateKey];
+  if (REST_DAYS_2026[dateKey]) info.rest = true;
+  if (WORK_DAYS_2026[dateKey]) info.work = true;
+  return info;
+}
+
 function getWeekLabel(monday) {
   const diffMs = monday.getTime() - SCHEDULE_BASE_MONDAY.getTime();
   const diffDays = Math.round(diffMs / 86400000);
@@ -2460,7 +2547,14 @@ function renderSchedule() {
       const isOtherMonth = date.getMonth() !== month;
 
       const dayEl = document.createElement('div');
-      dayEl.className = 'schedule-day' + (isToday ? ' today' : '') + (isWeekend ? ' weekend' : '') + (isOtherMonth ? ' other-month' : '');
+      var dayClasses = 'schedule-day';
+      if (isToday) dayClasses += ' today';
+      if (isWeekend) dayClasses += ' weekend';
+      if (isOtherMonth) dayClasses += ' other-month';
+      var calInfo = getCalendarDayInfo(dateKey);
+      if (calInfo.rest) dayClasses += ' is-rest';
+      if (calInfo.work) dayClasses += ' is-work';
+      dayEl.className = dayClasses;
       dayEl.dataset.date = dateKey;
       dayEl.onclick = () => showScheduleInput(dateKey);
 
@@ -2472,10 +2566,25 @@ function renderSchedule() {
           '</div>';
       }).join('');
 
+      // Build badge HTML (休/班)
+      var badgeHtml = '';
+      if (calInfo.rest) badgeHtml = '<span class="day-badge rest">休</span>';
+      else if (calInfo.work) badgeHtml = '<span class="day-badge work">班</span>';
+
+      // Build festival/solar term info
+      var infoHtml = '';
+      if (calInfo.festival) {
+        infoHtml = '<div class="day-info festival">' + escapeHtml(calInfo.festival) + '</div>';
+      } else if (calInfo.solarTerm) {
+        infoHtml = '<div class="day-info solar">' + escapeHtml(calInfo.solarTerm) + '</div>';
+      }
+
       dayEl.innerHTML =
         '<div class="day-header">' +
           '<span class="day-date">' + (date.getMonth()+1) + '/' + date.getDate() + '</span>' +
+          badgeHtml +
         '</div>' +
+        infoHtml +
         '<div class="day-events">' + eventsHtml + '</div>' +
         '<div class="schedule-add-hint">+ 添加</div>';
 
