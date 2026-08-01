@@ -770,6 +770,9 @@
     <option value="month">本月</option>
     <option value="year">本年</option>
   </select>
+  <select id="sourceFilter" onchange="onFilterChange()" style="padding:6px 14px;border:1px solid var(--border);border-radius:20px;font-size:13px;outline:none;background:var(--card-bg);color:var(--text-secondary);cursor:pointer;">
+    <option value="">全部来源</option>
+  </select>
   <select id="personFilter" onchange="onFilterChange()" style="padding:6px 14px;border:1px solid var(--border);border-radius:20px;font-size:13px;outline:none;background:var(--card-bg);color:var(--text-secondary);cursor:pointer;">
     <option value="">全部负责人</option>
   </select>
@@ -1438,10 +1441,18 @@ function renderTable() {
   personFilterEl.innerHTML = '<option value="">全部负责人</option>' + persons.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
   personFilterEl.value = currentPerson;
 
+  // Populate source filter options
+  const sourceFilterEl = document.getElementById('sourceFilter');
+  const currentSource = sourceFilterEl.value;
+  const sources = [...new Set(tasks.map(t => t.source).filter(Boolean))].sort();
+  sourceFilterEl.innerHTML = '<option value="">全部来源</option>' + sources.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+  sourceFilterEl.value = currentSource;
+
   const search = document.getElementById('searchInput').value.toLowerCase().trim();
   const catFilter = document.getElementById('categoryFilter').value;
   const periodFilter = document.getElementById('periodFilter').value;
   const personFilter = personFilterEl.value;
+  const sourceFilter = sourceFilterEl.value;
   let filtered = tasks.filter(t => {
     const overall = getOverallAlert(t);
     if (currentFilter === 'overdue' && overall.level !== 'overdue') return false;
@@ -1462,6 +1473,7 @@ function renderTable() {
     if (catFilter && (t.category||'') !== catFilter) return false;
     if (periodFilter && !isInPeriod(t.internalDeadline, periodFilter)) return false;
     if (personFilter && t.person !== personFilter) return false;
+    if (sourceFilter && (t.source||'') !== sourceFilter) return false;
     if (search) {
       return t.name.toLowerCase().includes(search) || t.person.toLowerCase().includes(search) || (t.source||'').toLowerCase().includes(search);
     }
