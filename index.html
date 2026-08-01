@@ -355,7 +355,6 @@
     gap: 4px;
     padding: 3px 10px;
     border-radius: 20px;
-    border: 1.5px solid;
     font-size: 12px;
     font-weight: 600;
     white-space: nowrap;
@@ -1538,8 +1537,8 @@ function renderTable() {
         <td>
           <div class="task-name">${escapeHtml(t.name)}</div>
         </td>
-        <td>${(() => { const cc = categoryColor(t.category); return `<span class="category-tag" style="background:${cc.bg};color:${cc.text};border-color:${cc.border};">${escapeHtml(t.category||'未分类')}</span>`; })()}</td>
-        <td>${(() => { const sc = sourceColor(t.source); return `<span class="source-tag" style="color:${sc.color};"><span class="source-dot" style="background:${sc.color};"></span>${escapeHtml(t.source||'-')}</span>`; })()}</td>
+        <td>${(() => { const cc = categoryColor(t.category); return `<span class="category-tag" style="background:${cc.bg};color:${cc.text};">${escapeHtml(t.category||'未分类')}</span>`; })()}</td>
+        <td>${(() => { const sc = sourceColor(t.source); return `<span class="source-tag" style="color:${sc.color};">${escapeHtml(t.source||'-')}</span>`; })()}</td>
         <td class="date-cell">${formatDate(t.issueDate)}</td>
         <td class="date-cell">${formatDate(t.receiptDate)}</td>
         <td><span class="person-tag" style="background:${personColor(t.person).bg};color:${personColor(t.person).text};">${escapeHtml(t.person)}</span></td>
