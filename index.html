@@ -768,37 +768,55 @@
     padding-top: 10px;
   }
 
-  /* Schedule Calendar */
+  /* Schedule Calendar - Month View */
   .schedule-nav {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
     flex-wrap: wrap;
   }
-  .schedule-nav .week-badge {
-    display: inline-block;
-    padding: 5px 14px;
-    border-radius: 20px;
-    font-size: 14px;
+  .schedule-nav .month-title {
+    font-size: 18px;
     font-weight: 700;
-    background: var(--blue-light);
-    color: var(--blue);
+    color: var(--text-primary);
+    min-width: 100px;
+    text-align: center;
   }
-  .schedule-nav .week-badge.prep { background: #fffbeb; color: #b45309; }
-  .schedule-nav .date-range { font-size: 14px; color: var(--text-secondary); }
   .schedule-nav .today-btn { margin-left: auto; }
 
   .schedule-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 8px;
+    grid-template-columns: 62px repeat(7, 1fr);
+    gap: 4px;
   }
+  .schedule-col-header {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding: 6px 0 4px;
+  }
+  .schedule-col-header.weekend { color: var(--red); }
+  .schedule-week-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 8px;
+    min-height: 96px;
+    text-align: center;
+    line-height: 1.3;
+  }
+  .schedule-week-cell.has-label { background: var(--blue-light); color: var(--blue); }
+  .schedule-week-cell.has-label.prep { background: #fffbeb; color: #b45309; }
+  .schedule-week-cell.no-label { color: var(--gray); font-size: 11px; }
   .schedule-day {
     background: var(--card-bg);
-    border-radius: 10px;
-    padding: 10px 8px;
-    min-height: 160px;
+    border-radius: 8px;
+    padding: 6px 5px;
+    min-height: 96px;
     box-shadow: var(--shadow);
     display: flex;
     flex-direction: column;
@@ -810,33 +828,33 @@
   .schedule-day:hover { border-color: var(--blue); box-shadow: var(--shadow-lg); }
   .schedule-day.today { background: var(--blue-light); border-color: var(--blue); }
   .schedule-day.weekend { background: var(--gray-light); }
+  .schedule-day.other-month { opacity: 0.4; }
   .schedule-day .day-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: baseline;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
   }
-  .schedule-day .day-name { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
-  .schedule-day .day-date { font-size: 17px; font-weight: 700; color: var(--text-primary); }
+  .schedule-day .day-date { font-size: 14px; font-weight: 700; color: var(--text-primary); }
   .schedule-day.today .day-date { color: var(--blue); }
-  .schedule-day .day-events { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .schedule-day .day-events { flex: 1; display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
   .schedule-event {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 4px;
+    gap: 3px;
     background: var(--blue-light);
     color: var(--blue);
-    padding: 3px 8px;
-    border-radius: 6px;
-    font-size: 12px;
-    line-height: 1.4;
+    padding: 2px 6px;
+    border-radius: 5px;
+    font-size: 11px;
+    line-height: 1.3;
     word-break: break-all;
   }
   .schedule-event .del-btn {
     cursor: pointer;
     opacity: 0.4;
-    font-size: 15px;
+    font-size: 13px;
     line-height: 1;
     flex-shrink: 0;
     transition: opacity .15s;
@@ -844,17 +862,18 @@
   .schedule-event .del-btn:hover { opacity: 1; color: var(--red); }
   .schedule-add-input {
     width: 100%;
-    padding: 5px 8px;
+    padding: 3px 6px;
     border: 1.5px solid var(--blue);
-    border-radius: 6px;
-    font-size: 12px;
+    border-radius: 5px;
+    font-size: 11px;
     outline: none;
+    box-sizing: border-box;
   }
   .schedule-add-hint {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--gray);
     text-align: center;
-    padding: 4px;
+    padding: 2px;
     opacity: 0;
     transition: opacity .15s;
   }
@@ -862,7 +881,7 @@
 
   @media (max-width: 768px) {
     .schedule-grid {
-      grid-template-columns: repeat(7, minmax(110px, 1fr));
+      grid-template-columns: 50px repeat(7, minmax(80px, 1fr));
       overflow-x: auto;
       padding-bottom: 8px;
     }
@@ -1024,11 +1043,10 @@
     </h1>
   </div>
   <div class="schedule-nav">
-    <button class="btn btn-ghost btn-sm" onclick="changeScheduleWeek(-1)">← 上一周</button>
-    <span class="week-badge" id="scheduleWeekBadge">-</span>
-    <span class="date-range" id="scheduleDateRange"></span>
-    <button class="btn btn-ghost btn-sm" onclick="changeScheduleWeek(1)">下一周 →</button>
-    <button class="btn btn-primary btn-sm today-btn" onclick="goToCurrentWeek()">本周</button>
+    <button class="btn btn-ghost btn-sm" onclick="changeScheduleMonth(-1)">← 上个月</button>
+    <span class="month-title" id="scheduleMonthTitle">-</span>
+    <button class="btn btn-ghost btn-sm" onclick="changeScheduleMonth(1)">下个月 →</button>
+    <button class="btn btn-primary btn-sm today-btn" onclick="goToCurrentMonth()">本月</button>
   </div>
   <div class="schedule-grid" id="scheduleGrid"></div>
 </div>
@@ -2344,10 +2362,10 @@ function switchSection(section) {
   items[itemMap[section]].classList.add('active');
 }
 
-// ========== Schedule Calendar ==========
+// ========== Schedule Calendar (Month View) ==========
 const SCHEDULE_STORAGE_KEY = 'yj_schedule_items_v1';
 let scheduleItems = {};
-let scheduleWeekOffset = 0;
+let scheduleMonthOffset = 0;
 
 // Base: Aug 24, 2026 (Monday) = 预备周; Aug 31 = 第一周; Sep 7 = 第二周 ...
 const SCHEDULE_BASE_MONDAY = new Date(2026, 7, 24);
@@ -2357,23 +2375,13 @@ function getWeekLabel(monday) {
   const diffDays = Math.round(diffMs / 86400000);
   const diffWeeks = Math.round(diffDays / 7);
   if (diffWeeks === 0) return { text: '预备周', prep: true };
-  if (diffWeeks > 0) return { text: `第${diffWeeks}周`, prep: false };
+  if (diffWeeks > 0) return { text: '第' + diffWeeks + '周', prep: false };
   return { text: '', prep: false };
 }
 
-function getMondayOfCurrentWeek() {
-  const today = new Date();
-  const dow = today.getDay();
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - (dow === 0 ? 6 : dow - 1));
-  monday.setHours(0, 0, 0, 0);
-  return monday;
-}
-
-function getScheduleMonday(offset) {
-  const monday = getMondayOfCurrentWeek();
-  monday.setDate(monday.getDate() + offset * 7);
-  return monday;
+function getDisplayedMonth() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth() + scheduleMonthOffset, 1);
 }
 
 function formatDateKey(d) {
@@ -2390,82 +2398,119 @@ function saveScheduleItems() {
 }
 
 function renderSchedule() {
-  const monday = getScheduleMonday(scheduleWeekOffset);
-  const dayNames = ['周一','周二','周三','周四','周五','周六','周日'];
-  const today = new Date(); today.setHours(0,0,0,0);
+  const monthDate = getDisplayedMonth();
+  const year = monthDate.getFullYear();
+  const month = monthDate.getMonth();
 
-  const label = getWeekLabel(monday);
-  const badge = document.getElementById('scheduleWeekBadge');
-  badge.textContent = label.text || '非教学周';
-  badge.className = 'week-badge' + (label.prep ? ' prep' : '');
-
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  document.getElementById('scheduleDateRange').textContent =
-    `${monday.getMonth()+1}月${monday.getDate()}日 - ${sunday.getMonth()+1}月${sunday.getDate()}日`;
+  document.getElementById('scheduleMonthTitle').textContent = year + '年' + (month + 1) + '月';
 
   const grid = document.getElementById('scheduleGrid');
   grid.innerHTML = '';
 
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(monday);
-    date.setDate(monday.getDate() + i);
-    const dateKey = formatDateKey(date);
-    const isToday = date.getTime() === today.getTime();
-    const isWeekend = i >= 5;
+  // Column headers: empty cell + 周一~周日
+  const dayNames = ['周一','周二','周三','周四','周五','周六','周日'];
+  const headerEmpty = document.createElement('div');
+  headerEmpty.className = 'schedule-col-header';
+  grid.appendChild(headerEmpty);
+  dayNames.forEach((name, i) => {
+    const h = document.createElement('div');
+    h.className = 'schedule-col-header' + (i >= 5 ? ' weekend' : '');
+    h.textContent = name;
+    grid.appendChild(h);
+  });
 
-    const dayEl = document.createElement('div');
-    dayEl.className = 'schedule-day' + (isToday ? ' today' : '') + (isWeekend ? ' weekend' : '');
-    dayEl.dataset.date = dateKey;
-    dayEl.onclick = () => showScheduleInput(dateKey);
+  // Find Monday on or before the 1st of the month
+  const firstDay = new Date(year, month, 1);
+  const dow = firstDay.getDay();
+  const startMonday = new Date(firstDay);
+  startMonday.setDate(firstDay.getDate() - (dow === 0 ? 6 : dow - 1));
 
-    const events = scheduleItems[dateKey] || [];
-    let eventsHtml = events.map((ev, idx) =>
-      `<div class="schedule-event" onclick="event.stopPropagation()">
-        <span>${escapeHtml(ev)}</span>
-        <span class="del-btn" onclick="deleteScheduleEvent('${dateKey}', ${idx})">×</span>
-      </div>`
-    ).join('');
+  // Find the last day of the month
+  const lastDay = new Date(year, month + 1, 0);
+  const dowEnd = lastDay.getDay();
+  const endSunday = new Date(lastDay);
+  endSunday.setDate(lastDay.getDate() + (dowEnd === 0 ? 0 : 7 - dowEnd));
 
-    dayEl.innerHTML =
-      `<div class="day-header">
-        <span class="day-name">${dayNames[i]}</span>
-        <span class="day-date">${date.getMonth()+1}/${date.getDate()}</span>
-      </div>
-      <div class="day-events">${eventsHtml}</div>
-      <div class="schedule-add-hint">+ 添加事项</div>`;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const numWeeks = Math.round((endSunday.getTime() - startMonday.getTime()) / (7 * 86400000)) + 1;
 
-    grid.appendChild(dayEl);
+  for (let w = 0; w < numWeeks; w++) {
+    const weekMonday = new Date(startMonday);
+    weekMonday.setDate(startMonday.getDate() + w * 7);
+
+    // Week label cell
+    const label = getWeekLabel(weekMonday);
+    const labelEl = document.createElement('div');
+    if (label.text) {
+      labelEl.className = 'schedule-week-cell has-label' + (label.prep ? ' prep' : '');
+      labelEl.textContent = label.text;
+    } else {
+      labelEl.className = 'schedule-week-cell no-label';
+      labelEl.textContent = '—';
+    }
+    grid.appendChild(labelEl);
+
+    // 7 day cells
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(weekMonday);
+      date.setDate(weekMonday.getDate() + i);
+      const dateKey = formatDateKey(date);
+      const isToday = date.getTime() === today.getTime();
+      const isWeekend = i >= 5;
+      const isOtherMonth = date.getMonth() !== month;
+
+      const dayEl = document.createElement('div');
+      dayEl.className = 'schedule-day' + (isToday ? ' today' : '') + (isWeekend ? ' weekend' : '') + (isOtherMonth ? ' other-month' : '');
+      dayEl.dataset.date = dateKey;
+      dayEl.onclick = () => showScheduleInput(dateKey);
+
+      const events = scheduleItems[dateKey] || [];
+      var eventsHtml = events.map(function(ev, idx) {
+        return '<div class="schedule-event" onclick="event.stopPropagation()">' +
+          '<span>' + escapeHtml(ev) + '</span>' +
+          '<span class="del-btn" onclick="deleteScheduleEvent(\'' + dateKey + '\', ' + idx + ')">×</span>' +
+          '</div>';
+      }).join('');
+
+      dayEl.innerHTML =
+        '<div class="day-header">' +
+          '<span class="day-date">' + (date.getMonth()+1) + '/' + date.getDate() + '</span>' +
+        '</div>' +
+        '<div class="day-events">' + eventsHtml + '</div>' +
+        '<div class="schedule-add-hint">+ 添加</div>';
+
+      grid.appendChild(dayEl);
+    }
   }
 }
 
-function changeScheduleWeek(delta) {
-  scheduleWeekOffset += delta;
+function changeScheduleMonth(delta) {
+  scheduleMonthOffset += delta;
   renderSchedule();
 }
 
-function goToCurrentWeek() {
-  scheduleWeekOffset = 0;
+function goToCurrentMonth() {
+  scheduleMonthOffset = 0;
   renderSchedule();
 }
 
 function showScheduleInput(dateKey) {
-  const existing = document.querySelector('.schedule-add-input');
+  var existing = document.querySelector('.schedule-add-input');
   if (existing) existing.remove();
 
-  const dayEl = document.querySelector(`.schedule-day[data-date="${dateKey}"]`);
+  var dayEl = document.querySelector('.schedule-day[data-date="' + dateKey + '"]');
   if (!dayEl) return;
 
-  const input = document.createElement('input');
+  var input = document.createElement('input');
   input.type = 'text';
   input.className = 'schedule-add-input';
-  input.placeholder = '输入事项，回车保存';
+  input.placeholder = '回车保存';
 
-  input.addEventListener('click', (e) => e.stopPropagation());
-  input.addEventListener('keydown', (e) => {
+  input.addEventListener('click', function(e) { e.stopPropagation(); });
+  input.addEventListener('keydown', function(e) {
     e.stopPropagation();
     if (e.key === 'Enter') {
-      const val = input.value.trim();
+      var val = input.value.trim();
       if (val) {
         if (!scheduleItems[dateKey]) scheduleItems[dateKey] = [];
         scheduleItems[dateKey].push(val);
@@ -2476,9 +2521,9 @@ function showScheduleInput(dateKey) {
       renderSchedule();
     }
   });
-  input.addEventListener('blur', () => { setTimeout(() => { if (document.querySelector('.schedule-add-input')) renderSchedule(); }, 150); });
+  input.addEventListener('blur', function() { setTimeout(function() { if (document.querySelector('.schedule-add-input')) renderSchedule(); }, 150); });
 
-  const eventsEl = dayEl.querySelector('.day-events');
+  var eventsEl = dayEl.querySelector('.day-events');
   eventsEl.appendChild(input);
   input.focus();
 }
