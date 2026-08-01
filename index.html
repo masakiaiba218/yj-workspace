@@ -1,0 +1,2094 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>YJ的工作台</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #f0f5f1;
+    --card-bg: #ffffff;
+    --text-primary: #1f2937;
+    --text-secondary: #6b7280;
+    --border: #e5e7eb;
+    --blue: #10b981;
+    --blue-light: #ecfdf5;
+    --green: #10b981;
+    --green-light: #ecfdf5;
+    --orange: #f59e0b;
+    --orange-light: #fffbeb;
+    --red: #ef4444;
+    --red-light: #fef2f2;
+    --gray: #9ca3af;
+    --gray-light: #f9fafb;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-lg: 0 10px 25px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+    --radius: 10px;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 0;
+    display: flex;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: 160px;
+    flex-shrink: 0;
+    background: linear-gradient(180deg, #059669, #047857);
+    min-height: 100vh;
+    padding: 24px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+  }
+
+  .sidebar-logo {
+    padding: 0 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #fff;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .sidebar-logo .logo-icon {
+    width: 36px; height: 36px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .sidebar-section-label {
+    padding: 8px 18px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .sidebar-item {
+    padding: 11px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: rgba(255,255,255,0.75);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .15s;
+    border-left: 3px solid transparent;
+    white-space: nowrap;
+  }
+  .sidebar-item:hover { background: rgba(255,255,255,0.1); color: #fff; }
+  .sidebar-item.active {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border-left-color: #6ee7b7;
+  }
+  .sidebar-item .item-icon { font-size: 17px; width: 22px; text-align: center; flex-shrink: 0; }
+
+  .main-content {
+    flex: 1;
+    padding: 24px;
+    min-width: 0;
+  }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .section-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    text-align: center;
+    color: var(--text-secondary);
+  }
+  .section-placeholder .placeholder-icon { font-size: 64px; margin-bottom: 16px; opacity: .6; }
+  .section-placeholder .placeholder-title { font-size: 22px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+  .section-placeholder .placeholder-desc { font-size: 15px; }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .header h1 {
+    font-size: 26px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .header h1 .icon {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 20px;
+  }
+
+  .header-actions { display: flex; gap: 10px; align-items: center; }
+
+  .sync-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .sync-indicator .sync-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .sync-indicator.synced .sync-dot { background: #10b981; }
+  .sync-indicator.syncing .sync-dot { background: #f59e0b; animation: pulse 1s infinite; }
+  .sync-indicator.offline .sync-dot { background: #ef4444; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .btn {
+    padding: 9px 18px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+
+  .btn-primary { background: var(--blue); color: #fff; }
+  .btn-primary:hover { background: #059669; }
+
+  .btn-ghost { background: var(--card-bg); color: var(--text-primary); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--gray-light); }
+
+  .btn-sm { padding: 5px 12px; font-size: 13px; border-radius: 6px; }
+
+  .btn-danger { background: var(--red-light); color: var(--red); border: 1px solid #fecaca; }
+  .btn-danger:hover { background: #fee2e2; }
+
+  /* Stats Cards */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: transform .15s, box-shadow .15s, border-color .15s;
+    border: 2px solid transparent;
+  }
+  .stat-card.clickable { cursor: pointer; }
+  .stat-card.clickable:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+  .stat-card.active { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(16,185,129,0.12); }
+
+  .stat-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+
+  .stat-info .num { font-size: 28px; font-weight: 700; line-height: 1.1; }
+  .stat-info .label { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+
+  /* Filter Bar */
+  .filter-bar {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 14px 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .filter-chip {
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    transition: all .15s;
+  }
+  .filter-chip:hover { border-color: var(--blue); color: var(--blue); }
+  .filter-chip.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+  .filter-chip .count {
+    display: inline-block;
+    margin-left: 4px;
+    font-size: 12px;
+    opacity: .8;
+  }
+
+  .search-box {
+    margin-left: auto;
+    position: relative;
+  }
+  .search-box input {
+    padding: 7px 14px 7px 34px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 13px;
+    width: 200px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .search-box input:focus { border-color: var(--blue); }
+  .search-box .search-icon {
+    position: absolute;
+    left: 11px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray);
+    font-size: 14px;
+  }
+
+  /* Table */
+  .table-wrap {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .table-scroll { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead tr { background: var(--gray-light); }
+
+  th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+  }
+
+  th.sortable { cursor: pointer; user-select: none; }
+  th.sortable:hover { color: var(--blue); }
+
+  td {
+    padding: 14px 16px;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  tbody tr { transition: background .12s; }
+  tbody tr:hover { background: #f5f7fa; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  .task-name { font-weight: 500; max-width: 260px; }
+
+  .person-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--blue-light);
+    color: var(--blue);
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .category-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #f3e8ff;
+    color: #7c3aed;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .source-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #e0f2fe;
+    color: #0284c7;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .date-cell { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+  .alert-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .alert-overdue { background: var(--red-light); color: var(--red); }
+  .alert-warning { background: var(--orange-light); color: #b45309; }
+  .alert-safe { background: var(--green-light); color: #047857; }
+  .alert-normal { background: var(--gray-light); color: var(--text-secondary); }
+
+  .action-btns { display: flex; gap: 6px; }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+  }
+  .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 15px; }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn .15s;
+  }
+  .modal-overlay.show { display: flex; }
+
+  @keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
+
+  .modal {
+    background: var(--card-bg);
+    border-radius: 14px;
+    width: 520px;
+    max-width: 92vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-lg);
+    animation: slideUp .2s ease;
+  }
+
+  @keyframes slideUp { from {transform: translateY(20px); opacity:0;} to {transform: translateY(0); opacity:1;} }
+
+  .export-option {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all .15s;
+    margin-bottom: 12px;
+  }
+  .export-option:hover {
+    border-color: var(--blue);
+    background: var(--blue-light);
+  }
+  .export-option-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+  .export-option-info { flex: 1; }
+  .export-option-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .export-option-desc { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+
+  .modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-header h2 { font-size: 18px; font-weight: 600; }
+  .modal-close {
+    background: none; border: none;
+    font-size: 22px; cursor: pointer;
+    color: var(--text-secondary);
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal-close:hover { background: var(--gray-light); }
+
+  .modal-body { padding: 24px; }
+
+  .form-group { margin-bottom: 18px; }
+  .form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: var(--text-primary);
+  }
+  .form-group label .required { color: var(--red); }
+
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color .15s;
+    background: var(--card-bg);
+  }
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(16,185,129,0.1); }
+  .form-group textarea { resize: vertical; min-height: 70px; }
+
+  .form-group .hint { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+
+  .file-upload-area {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    transition: border-color .15s, background .15s;
+    cursor: pointer;
+  }
+  .file-upload-area:hover { border-color: var(--blue); background: var(--blue-light); }
+  .file-upload-area .upload-icon { font-size: 28px; margin-bottom: 6px; }
+  .file-upload-area .upload-text { font-size: 13px; color: var(--text-secondary); }
+  .file-upload-area input[type="file"] { display: none; }
+
+  .file-preview {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--gray-light);
+  }
+  .file-preview .file-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .file-preview .file-name .file-icon { font-size: 18px; flex-shrink: 0; }
+  .file-preview .file-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .file-preview .file-actions button {
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background .15s;
+  }
+  .file-preview .file-actions .btn-download { color: var(--blue); }
+  .file-preview .file-actions .btn-download:hover { background: var(--blue-light); }
+  .file-preview .file-actions .btn-remove { color: var(--red); }
+  .file-preview .file-actions .btn-remove:hover { background: var(--red-light); }
+
+  .file-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--blue);
+    text-decoration: none;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .file-link:hover { text-decoration: underline; }
+
+  .modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #1f2937;
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    box-shadow: var(--shadow-lg);
+    z-index: 2000;
+    opacity: 0;
+    transition: all .25s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Alert banner */
+  .alert-banner {
+    background: linear-gradient(135deg, #fef2f2, #fffbeb);
+    border: 1px solid #fecaca;
+    border-radius: var(--radius);
+    padding: 14px 20px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #b91c1c;
+  }
+  .alert-banner .banner-icon { font-size: 18px; }
+  .alert-banner strong { font-weight: 600; }
+
+  .progress-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width .3s;
+  }
+
+  /* Pagination */
+  .pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .pagination-info {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .page-btn {
+    min-width: 32px;
+    height: 32px;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .15s;
+    color: var(--text-primary);
+    padding: 0 8px;
+  }
+  .page-btn:hover:not(:disabled) { border-color: var(--blue); color: var(--blue); }
+  .page-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .page-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .page-size-select {
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  .page-ellipsis {
+    color: var(--text-secondary);
+    font-size: 13px;
+    padding: 0 4px;
+  }
+
+  @media (max-width: 768px) {
+    body { flex-direction: column; }
+    .sidebar { width: 100%; min-height: auto; flex-direction: row; padding: 12px 16px; gap: 4px; overflow-x: auto; position: relative; }
+    .sidebar-logo { padding: 0 12px 0 0; border-right: 1px solid rgba(255,255,255,0.2); margin-right: 8px; font-size: 16px; }
+    .sidebar-section-label { display: none; }
+    .sidebar-item { padding: 8px 14px; border-left: none; border-bottom: 3px solid transparent; }
+    .sidebar-item.active { border-bottom-color: #6ee7b7; border-left-color: transparent; }
+    .main-content { padding: 14px; }
+    .header h1 { font-size: 20px; }
+    .search-box { margin-left: 0; width: 100%; }
+    .search-box input { width: 100%; }
+    th, td { padding: 10px 12px; font-size: 13px; }
+    .sync-indicator { font-size: 11px; padding: 3px 8px; }
+    .sync-indicator #syncText { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-icon">📋</span>
+    YJ
+  </div>
+  <div class="sidebar-section-label">功能分区</div>
+  <div class="sidebar-item active" onclick="switchSection('work')">
+    <span class="item-icon">💼</span> 工作
+  </div>
+  <div class="sidebar-item" onclick="switchSection('project')">
+    <span class="item-icon">📊</span> 项目管理台账
+  </div>
+  <div class="sidebar-item" onclick="switchSection('class')">
+    <span class="item-icon">📚</span> 上课
+  </div>
+  <div class="sidebar-item" onclick="switchSection('other')">
+    <span class="item-icon">📦</span> 其他
+  </div>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+
+<!-- Work Section -->
+<div class="section active" id="section-work">
+
+<div class="header">
+  <h1>
+    <span class="icon">📋</span>
+    工作
+  </h1>
+  <div class="header-actions">
+    <div class="sync-indicator syncing" id="syncIndicator" onclick="manualSync()" style="cursor:pointer;" title="点击手动同步">
+      <span class="sync-dot"></span>
+      <span id="syncText">同步中</span>
+    </div>
+    <button class="btn btn-ghost" onclick="openExportModal()">
+      <span>📥</span> 导出数据
+    </button>
+    <button class="btn btn-primary" onclick="openModal()">
+      <span>＋</span> 新增任务
+    </button>
+  </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="stats" id="statsContainer"></div>
+
+<!-- Alert Banner -->
+<div id="alertBannerContainer"></div>
+
+<!-- Filter Bar -->
+<div class="filter-bar">
+  <div class="filter-chip active" data-filter="all" onclick="setFilter('all')">全部</div>
+  <select id="statusFilter" onchange="onStatusFilterChange()" style="padding:6px 14px;border:1px solid var(--border);border-radius:20px;font-size:13px;outline:none;background:var(--card-bg);color:var(--text-secondary);cursor:pointer;">
+    <option value="">工作状态</option>
+    <option value="overdue">已逾期</option>
+    <option value="warning">即将到期</option>
+    <option value="safe">正常</option>
+    <option value="done">已完成</option>
+  </select>
+  <select id="categoryFilter" onchange="onFilterChange()" style="padding:6px 14px;border:1px solid var(--border);border-radius:20px;font-size:13px;outline:none;background:var(--card-bg);color:var(--text-secondary);cursor:pointer;">
+    <option value="">全部分类</option>
+    <option value="申报类">申报类</option>
+    <option value="项目管理类">项目管理类</option>
+    <option value="制度类">制度类</option>
+    <option value="报告类">报告类</option>
+    <option value="数据类">数据类</option>
+    <option value="比赛类">比赛类</option>
+    <option value="其他">其他</option>
+  </select>
+  <select id="periodFilter" onchange="onFilterChange()" style="padding:6px 14px;border:1px solid var(--border);border-radius:20px;font-size:13px;outline:none;background:var(--card-bg);color:var(--text-secondary);cursor:pointer;">
+    <option value="">全部周期</option>
+    <option value="week">本周</option>
+    <option value="month">本月</option>
+    <option value="year">本年</option>
+  </select>
+  <select id="personFilter" onchange="onFilterChange()" style="padding:6px 14px;border:1px solid var(--border);border-radius:20px;font-size:13px;outline:none;background:var(--card-bg);color:var(--text-secondary);cursor:pointer;">
+    <option value="">全部负责人</option>
+  </select>
+  <div class="search-box">
+    <span class="search-icon">🔍</span>
+    <input type="text" placeholder="搜索工作内容、负责人或来源..." id="searchInput" oninput="onFilterChange()">
+  </div>
+</div>
+
+<!-- Table -->
+<div class="table-wrap">
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:40px;">序号</th>
+          <th class="sortable" onclick="sortBy('name')">工作内容</th>
+          <th class="sortable" onclick="sortBy('category')">工作任务分类</th>
+          <th class="sortable" onclick="sortBy('source')">工作来源</th>
+          <th class="sortable" onclick="sortBy('issueDate')">落款日期</th>
+          <th class="sortable" onclick="sortBy('receiptDate')">收文日期</th>
+          <th class="sortable" onclick="sortBy('person')">工作负责人</th>
+          <th class="sortable" onclick="sortBy('internalDeadline')">校内截止时间</th>
+          <th>校内截止预警</th>
+          <th class="sortable" onclick="sortBy('submitDeadline')">报送时间</th>
+          <th>报送预警</th>
+          <th style="min-width:140px;">备注</th>
+          <th style="width:70px;">工作文件</th>
+          <th style="width:120px;">操作</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+  <div class="pagination-bar" id="paginationBar"></div>
+</div>
+
+</div><!-- /section-work -->
+
+<!-- Project Ledger Section -->
+<div class="section" id="section-project">
+  <div class="header">
+    <h1>
+      <span class="icon">📊</span>
+      项目管理台账
+    </h1>
+  </div>
+  <div class="section-placeholder">
+    <div class="placeholder-icon">📊</div>
+    <div class="placeholder-title">项目管理台账</div>
+    <div class="placeholder-desc">该分区功能正在规划中，敬请期待</div>
+  </div>
+</div>
+
+<!-- Class Section -->
+<div class="section" id="section-class">
+  <div class="header">
+    <h1>
+      <span class="icon">📚</span>
+      上课
+    </h1>
+  </div>
+  <div class="section-placeholder">
+    <div class="placeholder-icon">📚</div>
+    <div class="placeholder-title">上课分区</div>
+    <div class="placeholder-desc">该分区功能正在规划中，敬请期待</div>
+  </div>
+</div>
+
+<!-- Other Section -->
+<div class="section" id="section-other">
+  <div class="header">
+    <h1>
+      <span class="icon">📦</span>
+      其他
+    </h1>
+  </div>
+  <div class="section-placeholder">
+    <div class="placeholder-icon">📦</div>
+    <div class="placeholder-title">其他分区</div>
+    <div class="placeholder-desc">该分区功能正在规划中，敬请期待</div>
+  </div>
+</div>
+
+</div><!-- /main-content -->
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">新增任务</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="taskId">
+      <div class="form-group">
+        <label>工作任务分类 <span class="required">*</span></label>
+        <select id="taskCategory">
+          <option value="申报类">申报类</option>
+          <option value="项目管理类">项目管理类</option>
+          <option value="制度类">制度类</option>
+          <option value="报告类">报告类</option>
+          <option value="数据类">数据类</option>
+          <option value="比赛类">比赛类</option>
+          <option value="其他">其他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>工作内容 <span class="required">*</span></label>
+        <textarea id="taskName" placeholder="请输入工作内容"></textarea>
+      </div>
+      <div class="form-group">
+        <label>工作来源 <span class="required">*</span></label>
+        <input type="text" id="taskSource" placeholder="请输入工作来源（如：省教育厅、学校办公室、教务处等）">
+      </div>
+      <div class="form-group">
+        <label>落款日期</label>
+        <input type="date" id="issueDate">
+        <div class="hint">文件落款（签发）日期</div>
+      </div>
+      <div class="form-group">
+        <label>收文日期</label>
+        <input type="date" id="receiptDate">
+        <div class="hint">收到文件的日期</div>
+      </div>
+      <div class="form-group">
+        <label>工作负责人 <span class="required">*</span></label>
+        <input type="text" id="taskPerson" placeholder="请输入负责人姓名">
+      </div>
+      <div class="form-group">
+        <label>校内截止时间 <span class="required">*</span></label>
+        <input type="date" id="internalDeadline">
+        <div class="hint">校内要求完成的日期</div>
+      </div>
+      <div class="form-group">
+        <label>报送时间 <span class="required">*</span></label>
+        <input type="date" id="submitDeadline">
+        <div class="hint">向校外/上级报送的最终日期</div>
+      </div>
+      <div class="form-group">
+        <label>备注</label>
+        <textarea id="taskRemark" placeholder="可选：补充说明" style="min-height:50px;"></textarea>
+      </div>
+      <div class="form-group">
+        <label>工作文件</label>
+        <div id="filePreviewArea" style="display:none;">
+          <div class="file-preview">
+            <div class="file-name">
+              <span class="file-icon">📎</span>
+              <span id="filePreviewName"></span>
+            </div>
+            <div class="file-actions">
+              <button class="btn-download" onclick="downloadTempFile()">下载</button>
+              <button class="btn-remove" onclick="clearFile()">删除</button>
+            </div>
+          </div>
+        </div>
+        <div id="fileUploadArea" class="file-upload-area" onclick="document.getElementById('taskFile').click()">
+          <div class="upload-icon">📎</div>
+          <div class="upload-text">点击上传工作文件（选填）</div>
+          <input type="file" id="taskFile" onchange="onFileSelect(this)">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveTask()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Complete Modal -->
+<div class="modal-overlay" id="completeModalOverlay" onclick="if(event.target===this)closeCompleteModal()">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <h2>完成确认</h2>
+      <button class="modal-close" onclick="closeCompleteModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="completeTaskId">
+      <div class="form-group">
+        <label>完成备注 <span class="required">*</span></label>
+        <textarea id="doneRemark" placeholder="请输入完成情况的备注说明" style="min-height:80px;"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeCompleteModal()">取消</button>
+      <button class="btn btn-primary" onclick="confirmDone()">确认完成</button>
+    </div>
+  </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal-overlay" id="exportModalOverlay" onclick="if(event.target===this)closeExportModal()">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <h2>导出数据</h2>
+      <button class="modal-close" onclick="closeExportModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>时间范围筛选</label>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <select id="exportDateField" onchange="updateExportRangeInfo()" style="flex:0 0 auto;padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--card-bg);">
+            <option value="all">全部日期</option>
+            <option value="issueDate">落款日期</option>
+            <option value="receiptDate">收文日期</option>
+            <option value="internalDeadline">校内截止时间</option>
+            <option value="submitDeadline">报送时间</option>
+          </select>
+          <input type="date" id="exportDateStart" onchange="updateExportRangeInfo()" style="flex:1;min-width:110px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;" placeholder="开始日期">
+          <span style="color:var(--text-secondary);">至</span>
+          <input type="date" id="exportDateEnd" onchange="updateExportRangeInfo()" style="flex:1;min-width:110px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;" placeholder="结束日期">
+        </div>
+        <div class="hint">不选日期则导出全部数据</div>
+      </div>
+      <div id="exportRangeInfo" style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;padding:8px 12px;background:var(--blue-light);border-radius:8px;display:none;"></div>
+      <div class="export-option" onclick="exportTable()">
+        <div class="export-option-icon">📊</div>
+        <div class="export-option-info">
+          <div class="export-option-title">导出工作表格</div>
+          <div class="export-option-desc">将符合条件的任务数据导出为 CSV 表格文件</div>
+        </div>
+      </div>
+      <div class="export-option" onclick="exportFiles()">
+        <div class="export-option-icon">📎</div>
+        <div class="export-option-info">
+          <div class="export-option-title">导出工作文件</div>
+          <div class="export-option-desc">下载符合条件的任务中上传的工作文件</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeExportModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ========== Data Layer ==========
+const STORAGE_KEY = 'workTimeAlertDashboard_v8';
+const ALERT_DAYS = 3;
+
+// --- Supabase Config ---
+const SUPABASE_URL = 'https://khkmxfmcveifvdsfyawa.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_Y-3gLyHewuOJ9qwhkdhoOA_8zsm1jRQ';
+let supabaseClient = null;
+let isSyncing = false;
+
+try {
+  supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch(e) {
+  console.warn('Supabase init failed:', e);
+}
+
+// --- Field mapping: JS camelCase <-> DB snake_case ---
+function taskToRow(t) {
+  return {
+    id: t.id,
+    category: t.category || null,
+    name: t.name,
+    source: t.source || null,
+    issue_date: t.issueDate || null,
+    receipt_date: t.receiptDate || null,
+    person: t.person || null,
+    internal_deadline: t.internalDeadline || null,
+    submit_deadline: t.submitDeadline || null,
+    remark: t.remark || null,
+    file_name: t.fileName || null,
+    file_data: t.fileData || null,
+    done: t.done || false,
+    done_remark: t.doneRemark || null,
+    created_at: t.createdAt || new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+}
+
+function rowToTask(r) {
+  return {
+    id: r.id,
+    category: r.category || '',
+    name: r.name || '',
+    source: r.source || '',
+    issueDate: r.issue_date || '',
+    receiptDate: r.receipt_date || '',
+    person: r.person || '',
+    internalDeadline: r.internal_deadline || '',
+    submitDeadline: r.submit_deadline || '',
+    remark: r.remark || '',
+    fileName: r.file_name || null,
+    fileData: r.file_data || null,
+    done: r.done || false,
+    doneRemark: r.done_remark || '',
+    createdAt: r.created_at || new Date().toISOString()
+  };
+}
+
+// --- Sync Status ---
+function setSyncStatus(status, text) {
+  const indicator = document.getElementById('syncIndicator');
+  const textEl = document.getElementById('syncText');
+  if (!indicator) return;
+  indicator.className = 'sync-indicator ' + status;
+  if (textEl) textEl.textContent = text;
+}
+
+// --- Cloud Sync Functions ---
+async function syncLoadFromCloud() {
+  if (!supabaseClient) return null;
+  try {
+    const { data, error } = await supabaseClient
+      .from('tasks')
+      .select('*')
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    if (data && data.length > 0) {
+      return data.map(rowToTask);
+    }
+    return [];
+  } catch(e) {
+    console.warn('Cloud load failed:', e);
+    return null;
+  }
+}
+
+async function syncUpsertTask(task) {
+  if (!supabaseClient) return;
+  try {
+    const { error } = await supabaseClient
+      .from('tasks')
+      .upsert(taskToRow(task));
+    if (error) throw error;
+    setSyncStatus('synced', '已同步');
+  } catch(e) {
+    console.warn('Cloud upsert failed:', e);
+    setSyncStatus('offline', '离线');
+  }
+}
+
+async function syncDeleteTask(id) {
+  if (!supabaseClient) return;
+  try {
+    const { error } = await supabaseClient
+      .from('tasks')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    setSyncStatus('synced', '已同步');
+  } catch(e) {
+    console.warn('Cloud delete failed:', e);
+    setSyncStatus('offline', '离线');
+  }
+}
+
+let tasks = [];
+let currentFilter = 'all';
+let sortField = '';
+let sortAsc = true;
+let currentPage = 1;
+let pageSize = 10;
+let tempFileData = null; // { fileName, fileData } or null
+
+async function loadData() {
+  // Try cloud first
+  setSyncStatus('syncing', '同步中');
+  const cloudData = await syncLoadFromCloud();
+  if (cloudData !== null) {
+    tasks = cloudData;
+    // Update local cache
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    setSyncStatus('synced', '已同步');
+  } else {
+    // Fallback to local
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      try { tasks = JSON.parse(raw); } catch(e) { tasks = []; }
+    }
+    setSyncStatus('offline', '离线');
+  }
+  if (!tasks || tasks.length === 0) {
+    tasks = getSampleData();
+    saveData();
+    // Also push sample data to cloud
+    for (const t of tasks) {
+      await syncUpsertTask(t);
+    }
+  }
+}
+
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+}
+
+function getSampleData() {
+  const now = new Date();
+  const addDays = (d) => { const dt = new Date(now); dt.setDate(dt.getDate()+d); return dt; };
+  const fmt = (dt) => {
+    const y = dt.getFullYear();
+    const m = String(dt.getMonth()+1).padStart(2,'0');
+    const d = String(dt.getDate()).padStart(2,'0');
+    return `${y}-${m}-${d}`;
+  };
+  return [
+    {
+      id: genId(),
+      category: '申报类',
+      name: '2026年秋季学期教学计划报送',
+      source: '省教育厅',
+      receiptDate: fmt(addDays(-10)),
+      issueDate: fmt(addDays(-12)),
+      person: '张明',
+      internalDeadline: fmt(addDays(2)),
+      submitDeadline: fmt(addDays(5)),
+      remark: '需教务处审核后统一报送',
+      done: false,
+      createdAt: now.toISOString()
+    },
+    {
+      id: genId(),
+      category: '制度类',
+      name: '实验室安全检查报告提交',
+      source: '学校办公室',
+      receiptDate: fmt(addDays(-8)),
+      issueDate: fmt(addDays(-9)),
+      person: '李芳',
+      internalDeadline: fmt(addDays(1)),
+      submitDeadline: fmt(addDays(4)),
+      remark: '',
+      done: false,
+      createdAt: now.toISOString()
+    },
+    {
+      id: genId(),
+      category: '报告类',
+      name: '科研项目中期评估材料',
+      source: '省科技厅',
+      receiptDate: fmt(addDays(-5)),
+      issueDate: fmt(addDays(-7)),
+      person: '王强',
+      internalDeadline: fmt(addDays(7)),
+      submitDeadline: fmt(addDays(10)),
+      remark: '需附阶段性成果报告',
+      done: false,
+      createdAt: now.toISOString()
+    },
+    {
+      id: genId(),
+      category: '数据类',
+      name: '学生奖学金评定汇总表',
+      source: '省学生资助管理中心',
+      receiptDate: fmt(addDays(-15)),
+      issueDate: fmt(addDays(-18)),
+      person: '赵丽',
+      internalDeadline: fmt(addDays(-1)),
+      submitDeadline: fmt(addDays(2)),
+      remark: '已逾期，请尽快补交',
+      done: false,
+      createdAt: now.toISOString()
+    },
+    {
+      id: genId(),
+      category: '比赛类',
+      name: '教职工年度考核材料',
+      source: '省人力资源和社会保障厅',
+      receiptDate: fmt(addDays(-3)),
+      issueDate: fmt(addDays(-6)),
+      person: '陈伟',
+      internalDeadline: fmt(addDays(15)),
+      submitDeadline: fmt(addDays(20)),
+      remark: '',
+      done: false,
+      createdAt: now.toISOString()
+    },
+    {
+      id: genId(),
+      category: '其他',
+      name: '校园文化建设方案申报',
+      source: '省教育厅',
+      receiptDate: fmt(addDays(-7)),
+      issueDate: fmt(addDays(-8)),
+      person: '刘洋',
+      internalDeadline: fmt(addDays(0)),
+      submitDeadline: fmt(addDays(3)),
+      remark: '今日截止！',
+      done: false,
+      createdAt: now.toISOString()
+    }
+  ];
+}
+
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2,5);
+}
+
+// ========== Alert Logic ==========
+
+// 单个日期的预警计算
+function getDeadlineAlert(dateStr) {
+  if (!dateStr) return { level: 'none', label: '-', class: 'alert-normal', icon: '', daysLeft: null };
+
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const target = new Date(dateStr);
+  target.setHours(0, 0, 0, 0);
+
+  const diffMs = target - now;
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    return { level: 'overdue', label: '已逾期', class: 'alert-overdue', icon: '⚠', daysLeft: diffDays };
+  } else if (diffDays <= ALERT_DAYS) {
+    return { level: 'warning', label: '即将到期', class: 'alert-warning', icon: '⏰', daysLeft: diffDays };
+  } else {
+    return { level: 'safe', label: '正常', class: 'alert-safe', icon: '✓', daysLeft: diffDays };
+  }
+}
+
+// 综合预警：取两个截止时间中更紧急的那个
+function getOverallAlert(task) {
+  if (task.done) return { level: 'done', label: '已完成', class: 'alert-normal', icon: '✓' };
+
+  const internalAlert = getDeadlineAlert(task.internalDeadline);
+  const submitAlert = getDeadlineAlert(task.submitDeadline);
+
+  const order = { overdue: 0, warning: 1, safe: 2, none: 3 };
+  return order[internalAlert.level] <= order[submitAlert.level] ? internalAlert : submitAlert;
+}
+
+// 格式化剩余天数文字
+function formatDaysLeft(alert) {
+  if (alert.level === 'none' || alert.daysLeft === null) return '<span style="color:var(--gray);">—</span>';
+  if (alert.daysLeft < 0) return `<span style="color:var(--red); font-weight:600;">逾期 ${Math.abs(alert.daysLeft)} 天</span>`;
+  if (alert.daysLeft === 0) return `<span style="color:var(--red); font-weight:600;">今日截止</span>`;
+  const color = alert.daysLeft <= ALERT_DAYS ? '#b45309' : '#047857';
+  return `<span style="color:${color}; font-weight:500;">剩余 ${alert.daysLeft} 天</span>`;
+}
+
+function formatDate(dtStr) {
+  if (!dtStr) return '-';
+  const dt = new Date(dtStr);
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth()+1).padStart(2,'0');
+  const d = String(dt.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+
+// ========== Rendering ==========
+function renderStats() {
+  let overdue=0, warning=0, safe=0, done=0;
+  let internalOverdue=0, internalWarning=0, submitOverdue=0, submitWarning=0;
+
+  tasks.forEach(t => {
+    const overall = getOverallAlert(t);
+    if (overall.level === 'overdue') overdue++;
+    else if (overall.level === 'warning') warning++;
+    else if (overall.level === 'safe') safe++;
+    else if (overall.level === 'done') done++;
+
+    if (!t.done) {
+      const ia = getDeadlineAlert(t.internalDeadline);
+      const sa = getDeadlineAlert(t.submitDeadline);
+      if (ia.level === 'overdue') internalOverdue++;
+      else if (ia.level === 'warning') internalWarning++;
+      if (sa.level === 'overdue') submitOverdue++;
+      else if (sa.level === 'warning') submitWarning++;
+    }
+  });
+
+  const total = tasks.length;
+  const pending = total - done;
+
+  const cards = [
+    { num: total, label: '任务总数', icon: '📋', bg: 'var(--blue-light)', color: 'var(--blue)', filter: 'all' },
+    { num: pending, label: '待办任务', icon: '📌', bg: 'var(--gray-light)', color: 'var(--text-secondary)', filter: 'pending' },
+    { num: internalOverdue + internalWarning, label: '校内预警', icon: '🏫', bg: 'var(--orange-light)', color: '#b45309', filter: 'internalAlert' },
+    { num: submitOverdue + submitWarning, label: '报送预警', icon: '📤', bg: 'var(--red-light)', color: 'var(--red)', filter: 'submitAlert' },
+    { num: safe, label: '正常进行', icon: '✅', bg: 'var(--green-light)', color: '#047857', filter: 'safe' },
+    { num: done, label: '已完成', icon: '🎉', bg: 'var(--gray-light)', color: 'var(--gray)', filter: 'done' },
+  ];
+
+  document.getElementById('statsContainer').innerHTML = cards.map(c => `
+    <div class="stat-card clickable ${currentFilter === c.filter ? 'active' : ''}" onclick="setStatFilter('${c.filter}')">
+      <div class="stat-icon" style="background:${c.bg}; color:${c.color};">${c.icon}</div>
+      <div class="stat-info">
+        <div class="num" style="color:${c.color};">${c.num}</div>
+        <div class="label">${c.label}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderAlertBanner() {
+  let internalOverdue=0, internalWarning=0, submitOverdue=0, submitWarning=0;
+
+  tasks.forEach(t => {
+    if (t.done) return;
+    const ia = getDeadlineAlert(t.internalDeadline);
+    const sa = getDeadlineAlert(t.submitDeadline);
+    if (ia.level === 'overdue') internalOverdue++;
+    else if (ia.level === 'warning') internalWarning++;
+    if (sa.level === 'overdue') submitOverdue++;
+    else if (sa.level === 'warning') submitWarning++;
+  });
+
+  const totalInternal = internalOverdue + internalWarning;
+  const totalSubmit = submitOverdue + submitWarning;
+
+  if (totalInternal === 0 && totalSubmit === 0) {
+    document.getElementById('alertBannerContainer').innerHTML = '';
+    return;
+  }
+
+  let parts = [];
+  if (totalInternal > 0) {
+    let detail = [];
+    if (internalOverdue > 0) detail.push(`<strong>${internalOverdue}</strong> 项已逾期`);
+    if (internalWarning > 0) detail.push(`<strong>${internalWarning}</strong> 项即将到期`);
+    parts.push(`🏫 <strong>校内截止预警：</strong>${detail.join('、')}`);
+  }
+  if (totalSubmit > 0) {
+    let detail = [];
+    if (submitOverdue > 0) detail.push(`<strong>${submitOverdue}</strong> 项已逾期`);
+    if (submitWarning > 0) detail.push(`<strong>${submitWarning}</strong> 项即将到期`);
+    parts.push(`📤 <strong>报送时间预警：</strong>${detail.join('、')}`);
+  }
+
+  document.getElementById('alertBannerContainer').innerHTML = `
+    <div class="alert-banner">
+      <span class="banner-icon">🚨</span>
+      <span>⚠️ <strong>预警提醒：</strong>${parts.join('；')}，请尽快处理！</span>
+    </div>
+  `;
+}
+
+function isInPeriod(dateStr, period) {
+  if (!dateStr || !period) return true;
+  const dt = new Date(dateStr);
+  const now = new Date();
+  if (period === 'year') {
+    return dt.getFullYear() === now.getFullYear();
+  }
+  if (period === 'month') {
+    return dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth();
+  }
+  if (period === 'week') {
+    // Week starts on Monday
+    const day = now.getDay() || 7;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - day + 1);
+    monday.setHours(0, 0, 0, 0);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+    return dt >= monday && dt <= sunday;
+  }
+  return true;
+}
+
+function renderTable() {
+  // Populate person filter options
+  const personFilterEl = document.getElementById('personFilter');
+  const currentPerson = personFilterEl.value;
+  const persons = [...new Set(tasks.map(t => t.person).filter(Boolean))].sort();
+  personFilterEl.innerHTML = '<option value="">全部负责人</option>' + persons.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+  personFilterEl.value = currentPerson;
+
+  const search = document.getElementById('searchInput').value.toLowerCase().trim();
+  const catFilter = document.getElementById('categoryFilter').value;
+  const periodFilter = document.getElementById('periodFilter').value;
+  const personFilter = personFilterEl.value;
+  let filtered = tasks.filter(t => {
+    const overall = getOverallAlert(t);
+    if (currentFilter === 'overdue' && overall.level !== 'overdue') return false;
+    if (currentFilter === 'warning' && overall.level !== 'warning') return false;
+    if (currentFilter === 'safe' && overall.level !== 'safe') return false;
+    if (currentFilter === 'done' && overall.level !== 'done') return false;
+    if (currentFilter === 'pending' && t.done) return false;
+    if (currentFilter === 'internalAlert') {
+      if (t.done) return false;
+      const ia = getDeadlineAlert(t.internalDeadline);
+      if (ia.level !== 'overdue' && ia.level !== 'warning') return false;
+    }
+    if (currentFilter === 'submitAlert') {
+      if (t.done) return false;
+      const sa = getDeadlineAlert(t.submitDeadline);
+      if (sa.level !== 'overdue' && sa.level !== 'warning') return false;
+    }
+    if (catFilter && (t.category||'') !== catFilter) return false;
+    if (periodFilter && !isInPeriod(t.internalDeadline, periodFilter)) return false;
+    if (personFilter && t.person !== personFilter) return false;
+    if (search) {
+      return t.name.toLowerCase().includes(search) || t.person.toLowerCase().includes(search) || (t.source||'').toLowerCase().includes(search);
+    }
+    return true;
+  });
+
+  // Sort
+  if (sortField) {
+    filtered.sort((a, b) => {
+      let va = a[sortField], vb = b[sortField];
+      if (sortField === 'internalDeadline' || sortField === 'submitDeadline' || sortField === 'receiptDate' || sortField === 'issueDate') {
+        va = new Date(va).getTime();
+        vb = new Date(vb).getTime();
+      } else {
+        va = String(va).toLowerCase();
+        vb = String(vb).toLowerCase();
+      }
+      if (va < vb) return sortAsc ? -1 : 1;
+      if (va > vb) return sortAsc ? 1 : -1;
+      return 0;
+    });
+  } else {
+    // Default: sort by overall alert urgency (overdue first, then by earliest deadline)
+    filtered.sort((a, b) => {
+      const ia = getOverallAlert(a), ib = getOverallAlert(b);
+      const order = { overdue: 0, warning: 1, safe: 2, none: 3, done: 4 };
+      if (order[ia.level] !== order[ib.level]) return order[ia.level] - order[ib.level];
+      return new Date(a.internalDeadline) - new Date(b.internalDeadline);
+    });
+  }
+
+  if (filtered.length === 0) {
+    document.getElementById('tableBody').innerHTML = `
+      <tr><td colspan="14">
+        <div class="empty-state">
+          <div class="emoji">🗂️</div>
+          <p>暂无匹配的任务记录</p>
+        </div>
+      </td></tr>
+    `;
+    document.getElementById('paginationBar').innerHTML = '';
+    return;
+  }
+
+  // Pagination
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  if (currentPage > totalPages) currentPage = totalPages;
+  if (currentPage < 1) currentPage = 1;
+  const startIdx = (currentPage - 1) * pageSize;
+  const paged = filtered.slice(startIdx, startIdx + pageSize);
+
+  document.getElementById('tableBody').innerHTML = paged.map((t, i) => {
+    const internalAlert = t.done ? { level: 'done', label: '已完成', class: 'alert-normal', icon: '✓', daysLeft: null } : getDeadlineAlert(t.internalDeadline);
+    const submitAlert = t.done ? { level: 'done', label: '已完成', class: 'alert-normal', icon: '✓', daysLeft: null } : getDeadlineAlert(t.submitDeadline);
+
+    return `
+      <tr ${t.done ? 'style="opacity:0.55;"' : ''}>
+        <td style="color:var(--text-secondary);">${startIdx + i + 1}</td>
+        <td>
+          <div class="task-name">${escapeHtml(t.name)}</div>
+        </td>
+        <td><span class="category-tag">🏷️ ${escapeHtml(t.category||'未分类')}</span></td>
+        <td><span class="source-tag">${escapeHtml(t.source||'-')}</span></td>
+        <td class="date-cell">${formatDate(t.issueDate)}</td>
+        <td class="date-cell">${formatDate(t.receiptDate)}</td>
+        <td><span class="person-tag" style="background:${personColor(t.person).bg};color:${personColor(t.person).text};">${escapeHtml(t.person)}</span></td>
+        <td class="date-cell">${formatDate(t.internalDeadline)}</td>
+        <td>
+          <span class="alert-badge ${internalAlert.class}">${internalAlert.label}</span>
+          <div style="font-size:12px;margin-top:3px;">${formatDaysLeft(internalAlert)}</div>
+        </td>
+        <td class="date-cell">${formatDate(t.submitDeadline)}</td>
+        <td>
+          <span class="alert-badge ${submitAlert.class}">${submitAlert.label}</span>
+          <div style="font-size:12px;margin-top:3px;">${formatDaysLeft(submitAlert)}</div>
+        </td>
+        <td style="font-size:13px;color:var(--text-secondary);max-width:200px;word-break:break-all;">
+          ${t.done && t.doneRemark ? `<span style="color:#047857;">✓ ${escapeHtml(t.doneRemark)}</span>` : (t.remark ? escapeHtml(t.remark) : '—')}
+        </td>
+        <td style="font-size:13px;text-align:center;">
+          ${t.fileName ? `<a class="file-link" onclick="downloadTaskFile('${t.id}')" style="color:#047857;font-weight:600;">有</a>` : '<span style="color:var(--gray);">无</span>'}
+        </td>
+        <td>
+          <div class="action-btns">
+            <button class="btn btn-sm btn-ghost" onclick="toggleDone('${t.id}')">${t.done ? '↩ 取消' : '✓ 完成'}</button>
+            <button class="btn btn-sm btn-ghost" onclick="openModal('${t.id}')">编辑</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteTask('${t.id}')">删除</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  // Render pagination bar
+  const totalItems = filtered.length;
+  const endIdx = Math.min(startIdx + pageSize, totalItems);
+
+  let pageButtons = '';
+  // First & Prev
+  pageButtons += `<button class="page-btn" onclick="goToPage(1)" ${currentPage===1?'disabled':''}>«</button>`;
+  pageButtons += `<button class="page-btn" onclick="goToPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+
+  // Page number buttons with ellipsis
+  const maxVisible = 7;
+  let startPage = 1, endPage = totalPages;
+  if (totalPages > maxVisible) {
+    startPage = Math.max(1, currentPage - 2);
+    endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    if (endPage - startPage < maxVisible - 1) startPage = endPage - maxVisible + 1;
+  }
+  if (startPage > 1) {
+    pageButtons += `<button class="page-btn" onclick="goToPage(1)">1</button>`;
+    if (startPage > 2) pageButtons += `<span class="page-ellipsis">…</span>`;
+  }
+  for (let p = startPage; p <= endPage; p++) {
+    pageButtons += `<button class="page-btn ${p===currentPage?'active':''}" onclick="goToPage(${p})">${p}</button>`;
+  }
+  if (endPage < totalPages) {
+    if (endPage < totalPages - 1) pageButtons += `<span class="page-ellipsis">…</span>`;
+    pageButtons += `<button class="page-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+  }
+
+  // Next & Last
+  pageButtons += `<button class="page-btn" onclick="goToPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>›</button>`;
+  pageButtons += `<button class="page-btn" onclick="goToPage(${totalPages})" ${currentPage===totalPages?'disabled':''}>»</button>`;
+
+  document.getElementById('paginationBar').innerHTML = `
+    <div class="pagination-info">第 ${startIdx + 1}–${endIdx} 条，共 ${totalItems} 条</div>
+    <div class="pagination-controls">
+      <select class="page-size-select" onchange="changePageSize(this.value)">
+        <option value="10" ${pageSize===10?'selected':''}>10 条/页</option>
+        <option value="20" ${pageSize===20?'selected':''}>20 条/页</option>
+        <option value="30" ${pageSize===30?'selected':''}>30 条/页</option>
+        <option value="50" ${pageSize===50?'selected':''}>50 条/页</option>
+      </select>
+      ${pageButtons}
+    </div>
+  `;
+}
+
+function goToPage(p) {
+  currentPage = p;
+  renderTable();
+}
+
+function changePageSize(val) {
+  pageSize = parseInt(val);
+  currentPage = 1;
+  renderTable();
+}
+
+const PERSON_COLORS = [
+  { bg: '#fce7f3', text: '#be185d' },
+  { bg: '#ccfbf1', text: '#0f766e' },
+  { bg: '#e0e7ff', text: '#4f46e5' },
+  { bg: '#fae8ff', text: '#a21caf' },
+  { bg: '#ecfccb', text: '#4d7c0f' },
+  { bg: '#cffafe', text: '#0891b2' },
+  { bg: '#ffe4e6', text: '#9f1239' },
+  { bg: '#fef3c7', text: '#92400e' },
+  { bg: '#ede9fe', text: '#5b21b6' },
+  { bg: '#f5f5f4', text: '#44403c' },
+  { bg: '#dbeafe', text: '#1e3a8a' },
+  { bg: '#dcfce7', text: '#15803d' },
+];
+const _personColorMap = {};
+function personColor(name) {
+  if (!name) return PERSON_COLORS[11];
+  if (!_personColorMap[name]) {
+    const idx = Object.keys(_personColorMap).length % PERSON_COLORS.length;
+    _personColorMap[name] = PERSON_COLORS[idx];
+  }
+  return _personColorMap[name];
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+function onStatusFilterChange() {
+  const val = document.getElementById('statusFilter').value;
+  currentFilter = val || 'all';
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  if (!val) {
+    document.querySelector('.filter-chip[data-filter="all"]').classList.add('active');
+  }
+  currentPage = 1;
+  renderAll();
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  document.querySelector(`.filter-chip[data-filter="${f}"]`).classList.add('active');
+  if (f === 'all') {
+    document.getElementById('statusFilter').value = '';
+  }
+  currentPage = 1;
+  renderAll();
+}
+
+function onFilterChange() {
+  currentPage = 1;
+  renderTable();
+}
+
+function setStatFilter(f) {
+  currentFilter = f;
+  currentPage = 1;
+  // Update status dropdown to match if applicable
+  const statusMap = { all: '', safe: 'safe', done: 'done' };
+  document.getElementById('statusFilter').value = statusMap[f] !== undefined ? statusMap[f] : '';
+  // Update filter chips
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  if (f === 'all') {
+    document.querySelector('.filter-chip[data-filter="all"]').classList.add('active');
+  }
+  renderAll();
+}
+
+function sortBy(field) {
+  if (sortField === field) {
+    sortAsc = !sortAsc;
+  } else {
+    sortField = field;
+    sortAsc = true;
+  }
+  renderTable();
+}
+
+// ========== File Handling ==========
+function onFileSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    tempFileData = { fileName: file.name, fileData: e.target.result };
+    showFilePreview(file.name);
+  };
+  reader.readAsDataURL(file);
+}
+
+function showFilePreview(name) {
+  document.getElementById('filePreviewName').textContent = name;
+  document.getElementById('filePreviewArea').style.display = 'block';
+  document.getElementById('fileUploadArea').style.display = 'none';
+}
+
+function showFileUploadArea() {
+  document.getElementById('filePreviewArea').style.display = 'none';
+  document.getElementById('fileUploadArea').style.display = 'block';
+  document.getElementById('taskFile').value = '';
+}
+
+function clearFile() {
+  tempFileData = null;
+  showFileUploadArea();
+}
+
+function downloadTempFile() {
+  if (!tempFileData) return;
+  const a = document.createElement('a');
+  a.href = tempFileData.fileData;
+  a.download = tempFileData.fileName;
+  a.click();
+}
+
+function downloadTaskFile(id) {
+  const t = tasks.find(x => x.id === id);
+  if (!t || !t.fileData) return;
+  const a = document.createElement('a');
+  a.href = t.fileData;
+  a.download = t.fileName;
+  a.click();
+}
+
+// ========== CRUD ==========
+function openModal(id) {
+  const overlay = document.getElementById('modalOverlay');
+  const title = document.getElementById('modalTitle');
+  document.getElementById('taskId').value = '';
+  tempFileData = null;
+
+  if (id) {
+    const t = tasks.find(x => x.id === id);
+    if (!t) return;
+    title.textContent = '编辑任务';
+    document.getElementById('taskId').value = t.id;
+    document.getElementById('taskCategory').value = t.category || '';
+    document.getElementById('taskName').value = t.name;
+    document.getElementById('taskSource').value = t.source || '';
+    document.getElementById('receiptDate').value = t.receiptDate || '';
+    document.getElementById('issueDate').value = t.issueDate || '';
+    document.getElementById('taskPerson').value = t.person;
+    document.getElementById('internalDeadline').value = t.internalDeadline;
+    document.getElementById('submitDeadline').value = t.submitDeadline;
+    document.getElementById('taskRemark').value = t.remark || '';
+    // File handling
+    if (t.fileData && t.fileName) {
+      tempFileData = { fileName: t.fileName, fileData: t.fileData };
+      showFilePreview(t.fileName);
+    } else {
+      showFileUploadArea();
+    }
+  } else {
+    title.textContent = '新增任务';
+    document.getElementById('taskCategory').value = '';
+    document.getElementById('taskName').value = '';
+    document.getElementById('taskSource').value = '';
+    document.getElementById('receiptDate').value = '';
+    document.getElementById('issueDate').value = '';
+    document.getElementById('taskPerson').value = '';
+    document.getElementById('internalDeadline').value = '';
+    document.getElementById('submitDeadline').value = '';
+    document.getElementById('taskRemark').value = '';
+    showFileUploadArea();
+  }
+
+  overlay.classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+
+function saveTask() {
+  const id = document.getElementById('taskId').value;
+  const category = document.getElementById('taskCategory').value;
+  const name = document.getElementById('taskName').value.trim();
+  const source = document.getElementById('taskSource').value.trim();
+  const receiptDate = document.getElementById('receiptDate').value;
+  const issueDate = document.getElementById('issueDate').value;
+  const person = document.getElementById('taskPerson').value.trim();
+  const internalDeadline = document.getElementById('internalDeadline').value;
+  const submitDeadline = document.getElementById('submitDeadline').value;
+  const remark = document.getElementById('taskRemark').value.trim();
+
+  if (!name) { showToast('请输入工作内容', 'error'); return; }
+  if (!source) { showToast('请输入工作来源', 'error'); return; }
+  if (!person) { showToast('请输入工作负责人', 'error'); return; }
+  if (!internalDeadline) { showToast('请选择校内截止时间', 'error'); return; }
+  if (!submitDeadline) { showToast('请选择报送时间', 'error'); return; }
+
+  if (id) {
+    const t = tasks.find(x => x.id === id);
+    if (t) {
+      t.category = category;
+      t.name = name;
+      t.source = source;
+      t.receiptDate = receiptDate;
+      t.issueDate = issueDate;
+      t.person = person;
+      t.internalDeadline = internalDeadline;
+      t.submitDeadline = submitDeadline;
+      t.remark = remark;
+      if (tempFileData) {
+        t.fileName = tempFileData.fileName;
+        t.fileData = tempFileData.fileData;
+      } else {
+        t.fileName = null;
+        t.fileData = null;
+      }
+      saveData();
+      setSyncStatus('syncing', '同步中');
+      syncUpsertTask(t);
+    }
+    showToast('任务已更新');
+  } else {
+    const newTask = {
+      id: genId(),
+      category, name, source, receiptDate, issueDate, person, internalDeadline, submitDeadline, remark,
+      fileName: tempFileData ? tempFileData.fileName : null,
+      fileData: tempFileData ? tempFileData.fileData : null,
+      done: false,
+      createdAt: new Date().toISOString()
+    };
+    tasks.push(newTask);
+    saveData();
+    setSyncStatus('syncing', '同步中');
+    syncUpsertTask(newTask);
+    showToast('任务已添加');
+  }
+
+  closeModal();
+  renderAll();
+}
+
+function deleteTask(id) {
+  if (!confirm('确定要删除这项任务吗？')) return;
+  tasks = tasks.filter(t => t.id !== id);
+  saveData();
+  setSyncStatus('syncing', '同步中');
+  syncDeleteTask(id);
+  showToast('任务已删除');
+  renderAll();
+}
+
+function toggleDone(id) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  if (!t.done) {
+    // Mark as done — show modal to collect completion remark
+    document.getElementById('completeTaskId').value = id;
+    document.getElementById('doneRemark').value = '';
+    document.getElementById('completeModalOverlay').classList.add('show');
+    setTimeout(() => document.getElementById('doneRemark').focus(), 100);
+  } else {
+    // Un-do — just toggle
+    t.done = false;
+    t.doneRemark = '';
+    saveData();
+    setSyncStatus('syncing', '同步中');
+    syncUpsertTask(t);
+    showToast('已取消完成');
+    renderAll();
+  }
+}
+
+function closeCompleteModal() {
+  document.getElementById('completeModalOverlay').classList.remove('show');
+}
+
+function confirmDone() {
+  const id = document.getElementById('completeTaskId').value;
+  const remark = document.getElementById('doneRemark').value.trim();
+  if (!remark) { showToast('请输入完成备注', 'error'); return; }
+  const t = tasks.find(x => x.id === id);
+  if (t) {
+    t.done = true;
+    t.doneRemark = remark;
+    saveData();
+    setSyncStatus('syncing', '同步中');
+    syncUpsertTask(t);
+    showToast('已标记为完成');
+    renderAll();
+  }
+  closeCompleteModal();
+}
+
+function openExportModal() {
+  if (tasks.length === 0) { showToast('暂无数据可导出', 'error'); return; }
+  document.getElementById('exportDateField').value = 'all';
+  document.getElementById('exportDateStart').value = '';
+  document.getElementById('exportDateEnd').value = '';
+  updateExportRangeInfo();
+  document.getElementById('exportModalOverlay').classList.add('show');
+}
+
+function closeExportModal() {
+  document.getElementById('exportModalOverlay').classList.remove('show');
+}
+
+function getFilteredTasksForExport() {
+  const field = document.getElementById('exportDateField').value;
+  const start = document.getElementById('exportDateStart').value;
+  const end = document.getElementById('exportDateEnd').value;
+  if (!start && !end) return tasks;
+  return tasks.filter(t => {
+    const dateFields = field === 'all'
+      ? ['issueDate', 'receiptDate', 'internalDeadline', 'submitDeadline']
+      : [field];
+    return dateFields.some(f => {
+      const val = t[f];
+      if (!val) return false;
+      if (start && val < start) return false;
+      if (end && val > end) return false;
+      return true;
+    });
+  });
+}
+
+function updateExportRangeInfo() {
+  const filtered = getFilteredTasksForExport();
+  const info = document.getElementById('exportRangeInfo');
+  const start = document.getElementById('exportDateStart').value;
+  const end = document.getElementById('exportDateEnd').value;
+  if (start || end) {
+    info.style.display = 'block';
+    info.textContent = `符合条件：${filtered.length} 条任务（共 ${tasks.length} 条）`;
+  } else {
+    info.style.display = 'none';
+  }
+}
+
+function exportTable() {
+  if (tasks.length === 0) { showToast('暂无数据可导出', 'error'); return; }
+  const filtered = getFilteredTasksForExport();
+  if (filtered.length === 0) { showToast('所选时间范围内无数据', 'error'); return; }
+  closeExportModal();
+
+  const headers = ['序号', '工作任务分类', '工作内容', '工作来源', '落款日期', '收文日期', '工作负责人', '校内截止时间', '校内截止预警', '报送时间', '报送预警', '备注', '工作文件', '完成备注', '是否完成'];
+  const rows = filtered.map((t, i) => {
+    const ia = t.done ? { label: '已完成', daysLeft: null } : getDeadlineAlert(t.internalDeadline);
+    const sa = t.done ? { label: '已完成', daysLeft: null } : getDeadlineAlert(t.submitDeadline);
+
+    const fmtAlert = (a) => {
+      if (t.done) return '已完成';
+      if (a.level === 'none') return '-';
+      let s = a.label;
+      if (a.daysLeft < 0) s += `(逾期${Math.abs(a.daysLeft)}天)`;
+      else if (a.daysLeft === 0) s += '(今日截止)';
+      else s += `(剩余${a.daysLeft}天)`;
+      return s;
+    };
+
+    return [
+      i+1, t.category||'未分类', t.name, t.source||'',
+      formatDate(t.issueDate), formatDate(t.receiptDate),
+      t.person,
+      formatDate(t.internalDeadline), fmtAlert(ia),
+      formatDate(t.submitDeadline), fmtAlert(sa),
+      t.remark || '',
+      t.fileName || '',
+      t.doneRemark || '',
+      t.done ? '是' : '否'
+    ];
+  });
+
+  const csv = '\uFEFF' + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `工作时间预警_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('工作表格已导出');
+}
+
+function exportFiles() {
+  const filtered = getFilteredTasksForExport();
+  if (filtered.length === 0) { showToast('所选时间范围内无数据', 'error'); return; }
+  closeExportModal();
+  const fileTasks = filtered.filter(t => t.fileData && t.fileName);
+  if (fileTasks.length === 0) { showToast('符合条件的任务暂无工作文件可导出', 'error'); return; }
+
+  let downloaded = 0;
+  fileTasks.forEach((t, i) => {
+    setTimeout(() => {
+      const a = document.createElement('a');
+      a.href = t.fileData;
+      a.download = t.fileName;
+      a.click();
+      downloaded++;
+      if (downloaded === fileTasks.length) {
+        showToast(`已导出 ${fileTasks.length} 个工作文件`);
+      }
+    }, i * 300);
+  });
+}
+
+// ========== Toast ==========
+function showToast(msg, type) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.style.background = type === 'error' ? '#ef4444' : '#1f2937';
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+// ========== Section Switching ==========
+let currentSection = 'work';
+function switchSection(section) {
+  currentSection = section;
+  const sectionMap = { work: 'section-work', project: 'section-project', class: 'section-class', other: 'section-other' };
+  const itemMap = { work: 0, project: 1, class: 2, other: 3 };
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(sectionMap[section]).classList.add('active');
+  const items = document.querySelectorAll('.sidebar-item');
+  items.forEach(i => i.classList.remove('active'));
+  items[itemMap[section]].classList.add('active');
+}
+
+// ========== Init ==========
+async function manualSync() {
+  setSyncStatus('syncing', '同步中');
+  const cloudData = await syncLoadFromCloud();
+  if (cloudData !== null) {
+    tasks = cloudData;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    renderAll();
+    setSyncStatus('synced', '已同步');
+    showToast('数据已同步');
+  } else {
+    setSyncStatus('offline', '离线');
+    showToast('同步失败，请检查网络', 'error');
+  }
+}
+
+function renderAll() {
+  renderStats();
+  renderAlertBanner();
+  renderTable();
+}
+
+// Init: load data from cloud, then render
+(async () => {
+  await loadData();
+  renderAll();
+})();
+
+// Auto sync from cloud every 60 seconds
+setInterval(async () => {
+  const cloudData = await syncLoadFromCloud();
+  if (cloudData !== null && JSON.stringify(cloudData) !== JSON.stringify(tasks)) {
+    tasks = cloudData;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    renderAll();
+    setSyncStatus('synced', '已同步');
+  }
+}, 60000);
+
+// Close modal on overlay click
+document.getElementById('modalOverlay').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+// Keyboard shortcut: ESC to close modal
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeModal();
+    closeCompleteModal();
+  }
+});
+</script>
+
+</body>
+</html>
