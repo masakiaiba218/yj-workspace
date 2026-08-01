@@ -353,26 +353,29 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    background: #f3e8ff;
-    color: #7c3aed;
     padding: 3px 10px;
     border-radius: 20px;
+    border: 1.5px solid;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     white-space: nowrap;
   }
 
   .source-tag {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    background: #e0f2fe;
-    color: #0284c7;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 12px;
+    gap: 5px;
+    font-size: 13px;
     font-weight: 500;
     white-space: nowrap;
+  }
+
+  .source-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
   }
 
   .date-cell { white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -1535,8 +1538,8 @@ function renderTable() {
         <td>
           <div class="task-name">${escapeHtml(t.name)}</div>
         </td>
-        <td><span class="category-tag">🏷️ ${escapeHtml(t.category||'未分类')}</span></td>
-        <td><span class="source-tag">${escapeHtml(t.source||'-')}</span></td>
+        <td>${(() => { const cc = categoryColor(t.category); return `<span class="category-tag" style="background:${cc.bg};color:${cc.text};border-color:${cc.border};">${escapeHtml(t.category||'未分类')}</span>`; })()}</td>
+        <td>${(() => { const sc = sourceColor(t.source); return `<span class="source-tag" style="color:${sc.color};"><span class="source-dot" style="background:${sc.color};"></span>${escapeHtml(t.source||'-')}</span>`; })()}</td>
         <td class="date-cell">${formatDate(t.issueDate)}</td>
         <td class="date-cell">${formatDate(t.receiptDate)}</td>
         <td><span class="person-tag" style="background:${personColor(t.person).bg};color:${personColor(t.person).text};">${escapeHtml(t.person)}</span></td>
@@ -1647,6 +1650,56 @@ function personColor(name) {
     _personColorMap[name] = PERSON_COLORS[idx];
   }
   return _personColorMap[name];
+}
+
+// Category colors — bordered style, distinct from person tags
+const CATEGORY_COLORS = [
+  { bg: '#fff7ed', text: '#9a3412', border: '#fb923c' },
+  { bg: '#fef9c3', text: '#713f12', border: '#eab308' },
+  { bg: '#ecfdf5', text: '#065f46', border: '#34d399' },
+  { bg: '#eff6ff', text: '#1e40af', border: '#60a5fa' },
+  { bg: '#f5f3ff', text: '#5b21b6', border: '#a78bfa' },
+  { bg: '#fdf2f8', text: '#9d174d', border: '#ec4899' },
+  { bg: '#ecfeff', text: '#155e75', border: '#22d3ee' },
+  { bg: '#f7fee7', text: '#3f6212', border: '#bef264' },
+  { bg: '#fafafa', text: '#525252', border: '#d4d4d4' },
+  { bg: '#fff1f2', text: '#9f1239', border: '#fb7185' },
+  { bg: '#f0f9ff', text: '#075985', border: '#38bdf8' },
+  { bg: '#fdf4ff', text: '#86198f', border: '#d946ef' },
+];
+const _categoryColorMap = {};
+function categoryColor(name) {
+  if (!name) return { bg: '#f5f5f4', text: '#525252', border: '#d4d4d4' };
+  if (!_categoryColorMap[name]) {
+    const idx = Object.keys(_categoryColorMap).length % CATEGORY_COLORS.length;
+    _categoryColorMap[name] = CATEGORY_COLORS[idx];
+  }
+  return _categoryColorMap[name];
+}
+
+// Source colors — dot+text style, distinct from both person and category
+const SOURCE_COLORS = [
+  { color: '#6366f1' },
+  { color: '#db2777' },
+  { color: '#059669' },
+  { color: '#d97706' },
+  { color: '#2563eb' },
+  { color: '#7c3aed' },
+  { color: '#dc2626' },
+  { color: '#0891b2' },
+  { color: '#65a30d' },
+  { color: '#78716c' },
+  { color: '#c026d3' },
+  { color: '#ea580c' },
+];
+const _sourceColorMap = {};
+function sourceColor(name) {
+  if (!name) return { color: '#78716c' };
+  if (!_sourceColorMap[name]) {
+    const idx = Object.keys(_sourceColorMap).length % SOURCE_COLORS.length;
+    _sourceColorMap[name] = SOURCE_COLORS[idx];
+  }
+  return _sourceColorMap[name];
 }
 
 function escapeHtml(str) {
