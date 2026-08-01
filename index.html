@@ -802,9 +802,6 @@
   <div class="sidebar-item active" onclick="switchSection('work')">
     <span class="item-icon">💼</span> 工作
   </div>
-  <div class="sidebar-item" onclick="switchSection('project')">
-    <span class="item-icon">📊</span> 项目管理台账
-  </div>
   <div class="sidebar-item" onclick="switchSection('class')">
     <span class="item-icon">📚</span> 上课
   </div>
@@ -914,21 +911,6 @@
 </div>
 
 </div><!-- /section-work -->
-
-<!-- Project Ledger Section -->
-<div class="section" id="section-project">
-  <div class="header">
-    <h1>
-      <span class="icon">📊</span>
-      项目管理台账
-    </h1>
-  </div>
-  <div class="section-placeholder">
-    <div class="placeholder-icon">📊</div>
-    <div class="placeholder-title">项目管理台账</div>
-    <div class="placeholder-desc">该分区功能正在规划中，敬请期待</div>
-  </div>
-</div>
 
 <!-- Class Section -->
 <div class="section" id="section-class">
@@ -2232,8 +2214,8 @@ function showToast(msg, type) {
 let currentSection = 'work';
 function switchSection(section) {
   currentSection = section;
-  const sectionMap = { work: 'section-work', project: 'section-project', class: 'section-class', other: 'section-other' };
-  const itemMap = { work: 0, project: 1, class: 2, other: 3 };
+  const sectionMap = { work: 'section-work', class: 'section-class', other: 'section-other' };
+  const itemMap = { work: 0, class: 1, other: 2 };
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById(sectionMap[section]).classList.add('active');
   const items = document.querySelectorAll('.sidebar-item');
