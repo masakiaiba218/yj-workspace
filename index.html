@@ -690,9 +690,107 @@
     .sync-indicator { font-size: 11px; padding: 3px 8px; }
     .sync-indicator #syncText { display: none; }
   }
+
+  /* Login Screen */
+  .login-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(135deg, #059669, #047857);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+  .login-overlay.hidden { display: none; }
+  .login-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 40px 36px;
+    width: 360px;
+    max-width: 90vw;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  }
+  .login-logo { text-align: center; margin-bottom: 28px; }
+  .login-logo .logo-icon {
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin-bottom: 14px;
+  }
+  .login-logo h2 { font-size: 22px; font-weight: 700; color: var(--text-primary); }
+  .login-logo p { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+  .login-card .form-group { margin-bottom: 18px; }
+  .login-card .form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+  .login-card .form-group input {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 15px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .login-card .form-group input:focus { border-color: var(--blue); }
+  .login-btn {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  .login-btn:hover { opacity: 0.9; }
+  .login-error {
+    color: var(--red);
+    font-size: 13px;
+    text-align: center;
+    margin-top: 12px;
+    display: none;
+  }
+  .login-error.show { display: block; }
+  .sidebar-logout {
+    margin-top: auto;
+    border-top: 1px solid rgba(255,255,255,0.15);
+    padding-top: 10px;
+  }
 </style>
 </head>
 <body>
+
+<!-- Login Overlay -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">📋</div>
+      <h2>YJ工作台</h2>
+      <p>请登录后使用</p>
+    </div>
+    <div class="form-group">
+      <label>账号</label>
+      <input type="text" id="loginUser" placeholder="请输入账号" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label>密码</label>
+      <input type="password" id="loginPass" placeholder="请输入密码" autocomplete="current-password">
+    </div>
+    <button class="login-btn" onclick="handleLogin()">登 录</button>
+    <div class="login-error" id="loginError">账号或密码错误，请重试</div>
+  </div>
+</div>
 
 <!-- Sidebar -->
 <div class="sidebar">
@@ -712,6 +810,9 @@
   </div>
   <div class="sidebar-item" onclick="switchSection('other')">
     <span class="item-icon">📦</span> 其他
+  </div>
+  <div class="sidebar-item sidebar-logout" onclick="handleLogout()">
+    <span class="item-icon">🚪</span> 退出登录
   </div>
 </div>
 
@@ -1016,6 +1117,45 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// ========== Auth ==========
+const AUTH_USER = 'admin';
+const AUTH_PASS = 'yj2026';
+const AUTH_SESSION_KEY = 'yj_workspace_auth';
+
+function isLoggedIn() {
+  return sessionStorage.getItem(AUTH_SESSION_KEY) === 'true';
+}
+
+function handleLogin() {
+  const user = document.getElementById('loginUser').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+  if (user === AUTH_USER && pass === AUTH_PASS) {
+    sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
+    document.getElementById('loginOverlay').classList.add('hidden');
+    errEl.classList.remove('show');
+    document.getElementById('loginPass').value = '';
+    initApp();
+  } else {
+    errEl.classList.add('show');
+  }
+}
+
+function handleLogout() {
+  sessionStorage.removeItem(AUTH_SESSION_KEY);
+  location.reload();
+}
+
+// Enter key to login
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !isLoggedIn()) {
+    const overlay = document.getElementById('loginOverlay');
+    if (overlay && !overlay.classList.contains('hidden')) {
+      handleLogin();
+    }
+  }
+});
+
 // ========== Data Layer ==========
 const STORAGE_KEY = 'workTimeAlertDashboard_v8';
 const ALERT_DAYS = 3;
@@ -2123,22 +2263,33 @@ function renderAll() {
   renderTable();
 }
 
-// Init: load data from cloud, then render
-(async () => {
-  await loadData();
-  renderAll();
-})();
-
-// Auto sync from cloud every 60 seconds
-setInterval(async () => {
-  const cloudData = await syncLoadFromCloud();
-  if (cloudData !== null && JSON.stringify(cloudData) !== JSON.stringify(tasks)) {
-    tasks = cloudData;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+// Init: load data from cloud, then render (only after login)
+let appInitialized = false;
+function initApp() {
+  if (appInitialized) return;
+  appInitialized = true;
+  (async () => {
+    await loadData();
     renderAll();
-    setSyncStatus('synced', '已同步');
-  }
-}, 60000);
+  })();
+
+  // Auto sync from cloud every 60 seconds
+  setInterval(async () => {
+    const cloudData = await syncLoadFromCloud();
+    if (cloudData !== null && JSON.stringify(cloudData) !== JSON.stringify(tasks)) {
+      tasks = cloudData;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      renderAll();
+      setSyncStatus('synced', '已同步');
+    }
+  }, 60000);
+}
+
+// If already logged in (e.g. page refresh in same session), skip login screen
+if (isLoggedIn()) {
+  document.getElementById('loginOverlay').classList.add('hidden');
+  initApp();
+}
 
 // Close modal on overlay click
 document.getElementById('modalOverlay').addEventListener('click', (e) => {
