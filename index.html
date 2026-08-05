@@ -1005,7 +1005,7 @@
     font-size: 12px;
     font-weight: 700;
     border-radius: 8px;
-    min-height: 96px;
+    min-height: 68px;
     text-align: center;
     line-height: 1.3;
   }
@@ -1015,8 +1015,8 @@
   .schedule-day {
     background: var(--card-bg);
     border-radius: 8px;
-    padding: 6px 5px;
-    min-height: 96px;
+    padding: 4px 5px;
+    min-height: 68px;
     box-shadow: var(--shadow);
     display: flex;
     flex-direction: column;
@@ -1101,6 +1101,118 @@
   .schedule-day.is-rest { background: #f0fdf4; }
   .schedule-day.is-work { background: #fef2f2; }
 
+  /* 待办事项区 */
+  .schedule-todo {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .schedule-todo-add {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    box-shadow: var(--shadow);
+  }
+  .schedule-todo-add input[type="text"] {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    outline: none;
+    min-width: 0;
+  }
+  .schedule-todo-add input[type="text"]:focus { border-color: var(--blue); }
+  .schedule-todo-add input[type="date"] {
+    padding: 7px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 12px;
+    outline: none;
+    color: var(--text-secondary);
+    background: var(--card-bg);
+  }
+  .schedule-todo-lists {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .todo-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 14px 16px;
+  }
+  .todo-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .todo-count {
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--blue);
+    color: #fff;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+  }
+  .todo-list {
+    list-style: none;
+    max-height: 260px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .todo-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: var(--gray-light);
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  .todo-item .todo-date {
+    font-size: 11px;
+    color: var(--text-secondary);
+    background: var(--blue-light);
+    color: var(--blue);
+    border-radius: 6px;
+    padding: 2px 6px;
+    flex-shrink: 0;
+    font-weight: 600;
+  }
+  .todo-item .todo-text { flex: 1; word-break: break-all; line-height: 1.4; }
+  .todo-item .todo-del {
+    cursor: pointer;
+    color: var(--gray);
+    font-size: 14px;
+    line-height: 1;
+    flex-shrink: 0;
+    padding: 2px 4px;
+  }
+  .todo-item .todo-del:hover { color: var(--red); }
+  .todo-empty {
+    font-size: 12px;
+    color: var(--gray);
+    text-align: center;
+    padding: 16px 0;
+  }
+
   /* 手机端/小屏（≤900px）：8列自适应铺满，不再横向滚动 */
   @media (max-width: 900px) {
     .schedule-grid {
@@ -1111,13 +1223,18 @@
     }
     .schedule-col-header { font-size: 11px; padding: 4px 0 2px; }
     .schedule-week-cell { font-size: 11px; }
-    .schedule-day { min-height: 88px; padding: 6px 3px; border-radius: 8px; }
-    .schedule-day .day-date { font-size: 13px; }
+    .schedule-day { min-height: 60px; padding: 4px 3px; border-radius: 8px; }
+    .schedule-day .day-date { font-size: 12px; }
     .schedule-day .day-events { gap: 2px; }
-    .schedule-event { font-size: 10px; padding: 1px 4px; }
-    .schedule-event .del-btn { font-size: 12px; }
+    .schedule-event { font-size: 9px; padding: 1px 3px; }
+    .schedule-event .del-btn { font-size: 11px; }
     .schedule-add-input { font-size: 10px; padding: 2px 4px; }
     .schedule-add-hint { display: none; }
+    .schedule-day .day-info { font-size: 9px; }
+    .schedule-todo { margin-top: 14px; }
+    .schedule-todo-add { flex-wrap: wrap; padding: 10px 12px; }
+    .schedule-todo-add input[type="date"] { flex: 0 0 auto; }
+    .schedule-todo-lists { grid-template-columns: 1fr; }
   }
 
   /* 手机竖屏：更紧凑，周标签列收窄，日期格子缩小 */
@@ -1126,7 +1243,7 @@
       grid-template-columns: 34px repeat(7, minmax(0, 1fr));
       gap: 2px;
     }
-    .schedule-day { min-height: 80px; padding: 5px 2px; }
+    .schedule-day { min-height: 58px; padding: 4px 2px; }
     .schedule-day .day-date { font-size: 12px; }
     .schedule-day .day-badge { font-size: 8px; padding: 0 3px; }
     .schedule-day .day-info { font-size: 9px; }
@@ -1375,6 +1492,25 @@
     <button class="btn btn-primary btn-sm today-btn" onclick="goToCurrentMonth()">本月</button>
   </div>
   <div class="schedule-grid" id="scheduleGrid"></div>
+
+  <!-- 待办事项：添加 + 本周/本月列表 -->
+  <div class="schedule-todo">
+    <div class="schedule-todo-add">
+      <input type="text" id="todoInput" placeholder="输入待办事项，回车或点击添加" onkeydown="if(event.key==='Enter')addTodoItem()">
+      <input type="date" id="todoDate" title="选择日期（默认今天）">
+      <button class="btn btn-primary btn-sm" onclick="addTodoItem()">＋ 添加</button>
+    </div>
+    <div class="schedule-todo-lists">
+      <div class="todo-card">
+        <div class="todo-card-title">📌 本周待办 <span class="todo-count" id="weekTodoCount">0</span></div>
+        <ul class="todo-list" id="weekTodoList"></ul>
+      </div>
+      <div class="todo-card">
+        <div class="todo-card-title">📅 本月待办 <span class="todo-count" id="monthTodoCount">0</span></div>
+        <ul class="todo-list" id="monthTodoList"></ul>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Class Section -->
@@ -3166,6 +3302,102 @@ function renderSchedule() {
       grid.appendChild(dayEl);
     }
   }
+  renderTodoLists();
+}
+
+// ========== Schedule Todo (本周/本月待办) ==========
+const WEEK_NAMES = ['周日','周一','周二','周三','周四','周五','周六'];
+
+function addTodoItem() {
+  const input = document.getElementById('todoInput');
+  const dateInput = document.getElementById('todoDate');
+  const text = input.value.trim();
+  if (!text) { showToast('请输入待办事项', 'error'); return; }
+  let dateKey = dateInput.value;
+  if (!dateKey) {
+    const now = new Date();
+    dateKey = formatDateKey(now);
+  }
+  if (!scheduleItems[dateKey]) scheduleItems[dateKey] = [];
+  scheduleItems[dateKey].push(text);
+  input.value = '';
+  dateInput.value = '';
+  saveScheduleItems();
+  renderSchedule();
+  showToast('待办已添加');
+}
+
+function deleteTodoItem(dateKey, idx) {
+  if (!scheduleItems[dateKey]) return;
+  scheduleItems[dateKey].splice(idx, 1);
+  if (scheduleItems[dateKey].length === 0) delete scheduleItems[dateKey];
+  saveScheduleItems();
+  renderSchedule();
+}
+
+function renderTodoLists() {
+  const now = new Date();
+  // 本周：周一到周日
+  const dow = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1));
+  monday.setHours(0,0,0,0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23,59,59,999);
+  // 本月
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  monthEnd.setHours(23,59,59,999);
+
+  const weekItems = [];
+  const monthItems = [];
+  Object.keys(scheduleItems).forEach(dateKey => {
+    const d = new Date(dateKey);
+    if (isNaN(d.getTime())) return;
+    const items = scheduleItems[dateKey] || [];
+    items.forEach((ev, idx) => {
+      const entry = { dateKey: dateKey, d: d, ev: ev, idx: idx };
+      if (d >= monday && d <= sunday) weekItems.push(entry);
+      if (d >= monthStart && d <= monthEnd) monthItems.push(entry);
+    });
+  });
+  weekItems.sort((a, b) => a.d - b.d);
+  monthItems.sort((a, b) => a.d - b.d);
+
+  const weekList = document.getElementById('weekTodoList');
+  const monthList = document.getElementById('monthTodoList');
+  const weekCount = document.getElementById('weekTodoCount');
+  const monthCount = document.getElementById('monthTodoCount');
+
+  if (weekList) {
+    if (weekItems.length === 0) {
+      weekList.innerHTML = '<li class="todo-empty">本周暂无待办</li>';
+    } else {
+      weekList.innerHTML = weekItems.map(it =>
+        '<li class="todo-item">' +
+          '<span class="todo-date">' + (it.d.getMonth()+1) + '/' + it.d.getDate() + ' ' + WEEK_NAMES[it.d.getDay()] + '</span>' +
+          '<span class="todo-text">' + escapeHtml(it.ev) + '</span>' +
+          '<span class="todo-del" onclick="deleteTodoItem(\'' + it.dateKey + '\',' + it.idx + ')">✕</span>' +
+        '</li>'
+      ).join('');
+    }
+  }
+  if (monthList) {
+    if (monthItems.length === 0) {
+      monthList.innerHTML = '<li class="todo-empty">本月暂无待办</li>';
+    } else {
+      monthList.innerHTML = monthItems.map(it =>
+        '<li class="todo-item">' +
+          '<span class="todo-date">' + (it.d.getMonth()+1) + '/' + it.d.getDate() + ' ' + WEEK_NAMES[it.d.getDay()] + '</span>' +
+          '<span class="todo-text">' + escapeHtml(it.ev) + '</span>' +
+          '<span class="todo-del" onclick="deleteTodoItem(\'' + it.dateKey + '\',' + it.idx + ')">✕</span>' +
+        '</li>'
+      ).join('');
+    }
+  }
+  if (weekCount) weekCount.textContent = weekItems.length;
+  if (monthCount) monthCount.textContent = monthItems.length;
 }
 
 function changeScheduleMonth(delta) {
