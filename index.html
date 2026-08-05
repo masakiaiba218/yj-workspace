@@ -294,6 +294,9 @@
     font-size: 14px;
   }
 
+  /* Mobile Card List */
+  .mobile-card-list { display: none; }
+
   /* Table */
   .table-wrap {
     background: var(--card-bg);
@@ -689,6 +692,70 @@
     th, td { padding: 10px 12px; font-size: 13px; }
     .sync-indicator { font-size: 11px; padding: 3px 8px; }
     .sync-indicator #syncText { display: none; }
+  }
+
+  /* 手机竖屏：卡片列表替代表格 */
+  @media (max-width: 768px) and (orientation: portrait) {
+    .mobile-card-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .table-wrap { display: none; }
+
+    .m-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .m-card.is-done { opacity: 0.6; }
+    .m-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .m-card-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.4;
+      flex: 1;
+      word-break: break-all;
+    }
+    .m-card-status { flex-shrink: 0; }
+    .m-card-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .m-card-meta {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+    .m-card-meta .meta-deadline { color: var(--text-primary); font-weight: 500; }
+    .m-card-remark {
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: var(--gray-light);
+      border-radius: 8px;
+      padding: 8px 10px;
+      word-break: break-all;
+    }
+    .m-card-remark:empty { display: none; }
+    .m-card-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .m-card-actions .btn { flex: 1; justify-content: center; }
+    .pagination-bar { margin-top: 6px; }
   }
 
   /* Login Screen */
@@ -1091,6 +1158,9 @@
   </div>
 </div>
 
+<!-- Mobile Card List (portrait phones) -->
+<div class="mobile-card-list" id="mobileCardList"></div>
+
 <!-- Table -->
 <div class="table-wrap">
   <div class="table-scroll">
@@ -1116,8 +1186,8 @@
       <tbody id="tableBody"></tbody>
     </table>
   </div>
-  <div class="pagination-bar" id="paginationBar"></div>
 </div>
+<div class="pagination-bar" id="paginationBar"></div>
 
 </div><!-- /section-work -->
 
@@ -1870,14 +1940,14 @@ function renderTable() {
   }
 
   if (filtered.length === 0) {
-    document.getElementById('tableBody').innerHTML = `
-      <tr><td colspan="14">
-        <div class="empty-state">
-          <div class="emoji">🗂️</div>
-          <p>暂无匹配的任务记录</p>
-        </div>
-      </td></tr>
+    const emptyHtml = `
+      <div class="empty-state">
+        <div class="emoji">🗂️</div>
+        <p>暂无匹配的任务记录</p>
+      </div>
     `;
+    document.getElementById('tableBody').innerHTML = `<tr><td colspan="14">${emptyHtml}</td></tr>`;
+    document.getElementById('mobileCardList').innerHTML = emptyHtml;
     document.getElementById('paginationBar').innerHTML = '';
     return;
   }
@@ -1928,6 +1998,41 @@ function renderTable() {
           </div>
         </td>
       </tr>
+    `;
+  }).join('');
+
+  // Render mobile card list (same paged data)
+  document.getElementById('mobileCardList').innerHTML = paged.map((t, i) => {
+    const internalAlert = t.done ? { level: 'done', label: '已完成', class: 'alert-normal', icon: '✓', daysLeft: null } : getDeadlineAlert(t.internalDeadline);
+    const submitAlert = t.done ? { level: 'done', label: '已完成', class: 'alert-normal', icon: '✓', daysLeft: null } : getDeadlineAlert(t.submitDeadline);
+    const overall = getOverallAlert(t);
+    const cc = categoryColor(t.category);
+    const sc = sourceColor(t.source);
+    const pc = personColor(t.person);
+    const remark = (t.done && t.doneRemark) ? `✓ ${escapeHtml(t.doneRemark)}` : (t.remark ? escapeHtml(t.remark) : '');
+    return `
+      <div class="m-card ${t.done ? 'is-done' : ''}">
+        <div class="m-card-head">
+          <div class="m-card-name">${escapeHtml(t.name)}</div>
+          <div class="m-card-status"><span class="alert-badge ${overall.class}">${overall.label}</span></div>
+        </div>
+        <div class="m-card-tags">
+          <span class="category-tag" style="background:${cc.bg};color:${cc.text};">${escapeHtml(t.category||'未分类')}</span>
+          <span class="source-tag" style="color:${sc.color};">${escapeHtml(t.source||'-')}</span>
+          <span class="person-tag" style="background:${pc.bg};color:${pc.text};">${escapeHtml(t.person)}</span>
+        </div>
+        <div class="m-card-meta">
+          <div><span class="meta-deadline">校内截止 ${formatDate(t.internalDeadline)}</span> ${formatDaysLeft(internalAlert)}</div>
+          <div><span class="meta-deadline">报送时间 ${formatDate(t.submitDeadline)}</span> ${formatDaysLeft(submitAlert)}</div>
+          <div>落款 ${formatDate(t.issueDate)} · 收文 ${formatDate(t.receiptDate)}${t.fileName ? ' · 📎 有附件' : ''}</div>
+        </div>
+        ${remark ? `<div class="m-card-remark">${remark}</div>` : ''}
+        <div class="m-card-actions">
+          <button class="btn btn-sm btn-ghost" onclick="toggleDone('${t.id}')">${t.done ? '↩ 取消' : '✓ 完成'}</button>
+          <button class="btn btn-sm btn-ghost" onclick="openModal('${t.id}')">编辑</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteTask('${t.id}')">删除</button>
+        </div>
+      </div>
     `;
   }).join('');
 
