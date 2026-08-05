@@ -757,6 +757,7 @@
       font-family: inherit;
     }
     .stats-toggle:active { opacity: 0.85; }
+    .stats-toggle { touch-action: none; user-select: none; -webkit-user-select: none; }
     .stats-toggle .toggle-icon { font-size: 16px; line-height: 1; }
     .stats-toggle .stats-badge {
       font-size: 10px;
@@ -1278,7 +1279,7 @@
 
 <!-- Stats Cards -->
 <div class="stats" id="statsContainer"></div>
-<button class="stats-toggle" id="statsToggle" onclick="toggleStats()" aria-label="仪表盘抽屉">
+<button class="stats-toggle" id="statsToggle" aria-label="仪表盘抽屉（点击展开，可上下拖动）">
   <span class="toggle-icon">📊</span>
   <span class="stats-badge" id="statsBadge">0</span>
   <span class="stats-warn" id="statsWarnInternal">校内 0</span>
@@ -3278,6 +3279,56 @@ function toggleStats() {
   if (icon) icon.textContent = isOpen ? '✕' : '📊';
 }
 
+function makeStatsToggleDraggable() {
+  const el = document.getElementById('statsToggle');
+  if (!el) return;
+  // 恢复保存的位置
+  const savedTop = localStorage.getItem('statsToggleTop');
+  if (savedTop) {
+    el.style.top = savedTop;
+    el.style.transform = 'none';
+  }
+  let startY, startTop, dragging = false, moved = false;
+  function start(e) {
+    const pt = e.touches ? e.touches[0] : e;
+    startY = pt.clientY;
+    const rect = el.getBoundingClientRect();
+    startTop = rect.top;
+    el.style.transform = 'none';
+    el.style.top = rect.top + 'px';
+    dragging = true;
+    moved = false;
+    if (e.cancelable) e.preventDefault();
+  }
+  function move(e) {
+    if (!dragging) return;
+    const pt = e.touches ? e.touches[0] : e;
+    const dy = pt.clientY - startY;
+    if (Math.abs(dy) > 5) moved = true;
+    if (moved) {
+      const maxTop = window.innerHeight - el.offsetHeight - 8;
+      const newTop = Math.max(8, Math.min(maxTop, startTop + dy));
+      el.style.top = newTop + 'px';
+      if (e.cancelable) e.preventDefault();
+    }
+  }
+  function end() {
+    if (!dragging) return;
+    if (moved) {
+      localStorage.setItem('statsToggleTop', el.style.top);
+    } else {
+      toggleStats();
+    }
+    dragging = false;
+  }
+  el.addEventListener('mousedown', start);
+  el.addEventListener('touchstart', start, { passive: false });
+  document.addEventListener('mousemove', move);
+  document.addEventListener('touchmove', move, { passive: false });
+  document.addEventListener('mouseup', end);
+  document.addEventListener('touchend', end);
+}
+
 function closeStatsDrawer() {
   const stats = document.querySelector('.stats');
   const btn = document.getElementById('statsToggle');
@@ -3308,6 +3359,7 @@ function initApp() {
     await syncRecycleFromCloud();
     purgeOldRecycleItems();
     updateRecycleBadge();
+    makeStatsToggleDraggable();
   })();
 
   // Auto sync from cloud every 60 seconds
