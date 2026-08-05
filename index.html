@@ -845,34 +845,6 @@
   }
 
   /* Schedule Calendar - Month View */
-  .section-tip {
-    font-size: 13px;
-    color: var(--text-secondary);
-    background: var(--blue-light);
-    border-radius: 8px;
-    padding: 10px 14px;
-    margin-bottom: 16px;
-    line-height: 1.5;
-  }
-  .project-status-select {
-    padding: 4px 8px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    font-size: 12px;
-    outline: none;
-    background: var(--card-bg);
-    color: var(--text-primary);
-    cursor: pointer;
-  }
-  .project-status-badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    background: #d1fae5;
-    color: #047857;
-  }
   .schedule-nav {
     display: flex;
     align-items: center;
@@ -1135,12 +1107,6 @@
   <div class="sidebar-item active" onclick="switchSection('work')">
     <span class="item-icon">💼</span> 工作
   </div>
-  <div class="sidebar-item" onclick="switchSection('apply')">
-    <span class="item-icon">📝</span> 项目申报
-  </div>
-  <div class="sidebar-item" onclick="switchSection('project')">
-    <span class="item-icon">📊</span> 项目管理
-  </div>
   <div class="sidebar-item" onclick="switchSection('schedule')">
     <span class="item-icon">📅</span> 日程
   </div>
@@ -1260,71 +1226,6 @@
 
 </div><!-- /section-work -->
 
-<!-- Apply Section (项目申报) -->
-<div class="section" id="section-apply">
-  <div class="header">
-    <h1>
-      <span class="icon">📝</span>
-      项目申报
-    </h1>
-    <div class="header-actions">
-      <button class="btn btn-primary" onclick="openApplyModal()">
-        <span>＋</span> 新增申报
-      </button>
-    </div>
-  </div>
-  <div class="section-tip">申报的项目将立项状态选择为"已立项"后，会自动出现在"项目管理"分区。</div>
-  <div class="table-wrap">
-    <div class="table-scroll">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:40px;">序号</th>
-            <th>项目名称</th>
-            <th>工作来源</th>
-            <th>负责人</th>
-            <th>校内截止时间</th>
-            <th>报送时间</th>
-            <th>立项状态</th>
-            <th style="width:120px;">操作</th>
-          </tr>
-        </thead>
-        <tbody id="applyTableBody"></tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<!-- Project Section (项目管理) -->
-<div class="section" id="section-project">
-  <div class="header">
-    <h1>
-      <span class="icon">📊</span>
-      项目管理
-    </h1>
-  </div>
-  <div class="section-tip">此处自动汇总"项目申报"分区中状态为"已立项"的项目。</div>
-  <div class="table-wrap">
-    <div class="table-scroll">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:40px;">序号</th>
-            <th>项目名称</th>
-            <th>工作来源</th>
-            <th>负责人</th>
-            <th>校内截止时间</th>
-            <th>报送时间</th>
-            <th>状态</th>
-            <th style="width:120px;">操作</th>
-          </tr>
-        </thead>
-        <tbody id="projectTableBody"></tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
 <!-- Schedule Section -->
 <div class="section" id="section-schedule">
   <div class="header">
@@ -1385,7 +1286,7 @@
       <input type="hidden" id="taskId">
       <div class="form-group">
         <label>工作任务分类 <span class="required">*</span></label>
-        <select id="taskCategory" onchange="onCategoryChange()">
+        <select id="taskCategory">
           <option value="申报类">申报类</option>
           <option value="项目管理类">项目管理类</option>
           <option value="制度类">制度类</option>
@@ -1394,14 +1295,6 @@
           <option value="比赛类">比赛类</option>
           <option value="其他">其他</option>
         </select>
-      </div>
-      <div class="form-group" id="projectStatusGroup" style="display:none;">
-        <label>立项状态</label>
-        <select id="taskProjectStatus">
-          <option value="">未立项</option>
-          <option value="已立项">已立项</option>
-        </select>
-        <div class="hint">选择"已立项"后，该项目会自动出现在"项目管理"分区</div>
       </div>
       <div class="form-group">
         <label>工作内容 <span class="required">*</span></label>
@@ -1623,7 +1516,6 @@ function taskToRow(t) {
     file_data: t.fileData || null,
     done: t.done || false,
     done_remark: t.doneRemark || null,
-    project_status: t.projectStatus || null,
     created_at: t.createdAt || new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
@@ -1645,7 +1537,6 @@ function rowToTask(r) {
     fileData: r.file_data || null,
     done: r.done || false,
     doneRemark: r.done_remark || '',
-    projectStatus: r.project_status || '',
     createdAt: r.created_at || new Date().toISOString()
   };
 }
@@ -2416,12 +2307,6 @@ function downloadTaskFile(id) {
 }
 
 // ========== CRUD ==========
-function onCategoryChange() {
-  const cat = document.getElementById('taskCategory').value;
-  const group = document.getElementById('projectStatusGroup');
-  if (group) group.style.display = (cat === '申报类') ? '' : 'none';
-}
-
 function openModal(id) {
   const overlay = document.getElementById('modalOverlay');
   const title = document.getElementById('modalTitle');
@@ -2434,8 +2319,6 @@ function openModal(id) {
     title.textContent = '编辑任务';
     document.getElementById('taskId').value = t.id;
     document.getElementById('taskCategory').value = t.category || '';
-    document.getElementById('taskProjectStatus').value = t.projectStatus || '';
-    onCategoryChange();
     document.getElementById('taskName').value = t.name;
     document.getElementById('taskSource').value = t.source || '';
     document.getElementById('receiptDate').value = t.receiptDate || '';
@@ -2454,8 +2337,6 @@ function openModal(id) {
   } else {
     title.textContent = '新增任务';
     document.getElementById('taskCategory').value = '';
-    document.getElementById('taskProjectStatus').value = '';
-    onCategoryChange();
     document.getElementById('taskName').value = '';
     document.getElementById('taskSource').value = '';
     document.getElementById('receiptDate').value = '';
@@ -2504,7 +2385,6 @@ function saveTask() {
       t.internalDeadline = internalDeadline;
       t.submitDeadline = submitDeadline;
       t.remark = remark;
-      t.projectStatus = document.getElementById('taskProjectStatus').value;
       if (tempFileData) {
         t.fileName = tempFileData.fileName;
         t.fileData = tempFileData.fileData;
@@ -2521,7 +2401,6 @@ function saveTask() {
     const newTask = {
       id: genId(),
       category, name, source, receiptDate, issueDate, person, internalDeadline, submitDeadline, remark,
-      projectStatus: document.getElementById('taskProjectStatus').value,
       fileName: tempFileData ? tempFileData.fileName : null,
       fileData: tempFileData ? tempFileData.fileData : null,
       done: false,
@@ -2838,8 +2717,8 @@ function showToast(msg, type) {
 let currentSection = 'work';
 function switchSection(section) {
   currentSection = section;
-  const sectionMap = { work: 'section-work', apply: 'section-apply', project: 'section-project', schedule: 'section-schedule', class: 'section-class', other: 'section-other' };
-  const itemMap = { work: 0, apply: 1, project: 2, schedule: 3, class: 4, other: 5 };
+  const sectionMap = { work: 'section-work', schedule: 'section-schedule', class: 'section-class', other: 'section-other' };
+  const itemMap = { work: 0, schedule: 1, class: 2, other: 3 };
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById(sectionMap[section]).classList.add('active');
   const items = document.querySelectorAll('.sidebar-item');
@@ -3125,97 +3004,10 @@ async function manualSync() {
   }
 }
 
-// ========== Apply / Project Sections ==========
-function openApplyModal() {
-  openModal();
-  document.getElementById('taskCategory').value = '申报类';
-  onCategoryChange();
-}
-
-function setProjectStatus(id, val) {
-  const t = tasks.find(x => x.id === id);
-  if (!t) return;
-  t.projectStatus = val;
-  saveData();
-  setSyncStatus('syncing', '同步中');
-  syncUpsertTask(t);
-  renderAll();
-  showToast(val === '已立项' ? '已立项，已自动加入项目管理' : '已改为未立项');
-}
-
-function renderApplyTable() {
-  const list = tasks.filter(t => t.category === '申报类');
-  const body = document.getElementById('applyTableBody');
-  if (!body) return;
-  if (list.length === 0) {
-    body.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="emoji">📝</div><p>暂无申报项目，点击右上角"新增申报"添加</p></div></td></tr>';
-    return;
-  }
-  body.innerHTML = list.map((t, i) => {
-    const sc = sourceColor(t.source);
-    const pc = personColor(t.person);
-    return `
-      <tr ${t.done ? 'style="opacity:0.55;"' : ''}>
-        <td style="color:var(--text-secondary);">${i + 1}</td>
-        <td><div class="task-name">${escapeHtml(t.name)}</div></td>
-        <td><span class="source-tag" style="color:${sc.color};">${escapeHtml(t.source||'-')}</span></td>
-        <td><span class="person-tag" style="background:${pc.bg};color:${pc.text};">${escapeHtml(t.person)}</span></td>
-        <td class="date-cell">${formatDate(t.internalDeadline)}</td>
-        <td class="date-cell">${formatDate(t.submitDeadline)}</td>
-        <td>
-          <select class="project-status-select" onchange="setProjectStatus('${t.id}', this.value)">
-            <option value="" ${!t.projectStatus ? 'selected' : ''}>未立项</option>
-            <option value="已立项" ${t.projectStatus === '已立项' ? 'selected' : ''}>已立项</option>
-          </select>
-        </td>
-        <td>
-          <div class="action-btns">
-            <button class="btn btn-sm btn-ghost" onclick="openModal('${t.id}')">编辑</button>
-            <button class="btn btn-sm btn-danger" onclick="deleteTask('${t.id}')">删除</button>
-          </div>
-        </td>
-      </tr>
-    `;
-  }).join('');
-}
-
-function renderProjectTable() {
-  const list = tasks.filter(t => t.projectStatus === '已立项');
-  const body = document.getElementById('projectTableBody');
-  if (!body) return;
-  if (list.length === 0) {
-    body.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="emoji">📊</div><p>暂无已立项项目，在"项目申报"分区将状态选为"已立项"后自动出现在这里</p></div></td></tr>';
-    return;
-  }
-  body.innerHTML = list.map((t, i) => {
-    const sc = sourceColor(t.source);
-    const pc = personColor(t.person);
-    return `
-      <tr ${t.done ? 'style="opacity:0.55;"' : ''}>
-        <td style="color:var(--text-secondary);">${i + 1}</td>
-        <td><div class="task-name">${escapeHtml(t.name)}</div></td>
-        <td><span class="source-tag" style="color:${sc.color};">${escapeHtml(t.source||'-')}</span></td>
-        <td><span class="person-tag" style="background:${pc.bg};color:${pc.text};">${escapeHtml(t.person)}</span></td>
-        <td class="date-cell">${formatDate(t.internalDeadline)}</td>
-        <td class="date-cell">${formatDate(t.submitDeadline)}</td>
-        <td><span class="project-status-badge">已立项</span></td>
-        <td>
-          <div class="action-btns">
-            <button class="btn btn-sm btn-ghost" onclick="openModal('${t.id}')">编辑</button>
-            <button class="btn btn-sm btn-danger" onclick="deleteTask('${t.id}')">删除</button>
-          </div>
-        </td>
-      </tr>
-    `;
-  }).join('');
-}
-
 function renderAll() {
   renderStats();
   renderAlertBanner();
   renderTable();
-  renderApplyTable();
-  renderProjectTable();
 }
 
 // Init: load data from cloud, then render (only after login)
