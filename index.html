@@ -1561,7 +1561,7 @@
       </div>
     </div>
     <div class="todo-card done-card">
-      <div class="todo-card-title">✅ 已完成 <span class="todo-count done-count" id="doneTodoCount">0</span></div>
+      <div class="todo-card-title">✅ 本月已完成 <span class="todo-count done-count" id="doneTodoCount">0</span></div>
       <ul class="todo-list" id="doneTodoList"></ul>
     </div>
   </div>
@@ -3424,8 +3424,9 @@ function renderTodoLists() {
       const text = typeof ev === 'string' ? ev : ev.text;
       if (search && !text.toLowerCase().includes(search)) return;
       const entry = { dateKey: dateKey, d: d, ev: text, idx: idx, done: done };
-      if (done) doneItems.push(entry);
-      else {
+      if (done) {
+        if (d >= monthStart && d <= monthEnd) doneItems.push(entry);
+      } else {
         if (d >= monday && d <= sunday) weekItems.push(entry);
         if (d >= monthStart && d <= monthEnd) monthItems.push(entry);
       }
@@ -3466,7 +3467,7 @@ function renderTodoLists() {
   }
   if (doneList) {
     doneList.innerHTML = doneItems.length === 0
-      ? '<li class="todo-empty">' + (search ? '无匹配结果' : '暂无已完成事项') + '</li>'
+      ? '<li class="todo-empty">' + (search ? '无匹配结果' : '本月暂无已完成事项') + '</li>'
       : doneItems.map(it => itemHtml(it, true)).join('');
   }
   if (weekCount) weekCount.textContent = weekItems.length;
