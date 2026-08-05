@@ -2558,6 +2558,7 @@ function deleteTask(id) {
 // ========== Recycle Bin ==========
 const RECYCLE_KEY = 'yj_recycle_bin_v1';
 const RECYCLE_RETENTION_DAYS = 90; // 3 months
+const RECYCLE_TABLE = 'recycle_bin';
 
 function loadRecycleBin() {
   const raw = localStorage.getItem(RECYCLE_KEY);
@@ -2565,14 +2566,59 @@ function loadRecycleBin() {
   return [];
 }
 
+function pushRecycleToCloud(bin) {
+  if (!supabaseClient) return;
+  const rows = bin.map(item => ({
+    id: item.id,
+    task: JSON.stringify(item),
+    deleted_at: item.deletedAt || new Date().toISOString()
+  }));
+  if (rows.length === 0) return;
+  supabaseClient.from(RECYCLE_TABLE).upsert(rows).then(({ error }) => {
+    if (error) { console.warn('Recycle cloud sync failed:', error); setSyncStatus('offline', '离线'); }
+    else { setSyncStatus('synced', '已同步'); }
+  });
+}
+
+function deleteRecycleFromCloud(ids) {
+  if (!supabaseClient || !ids || ids.length === 0) return;
+  supabaseClient.from(RECYCLE_TABLE).delete().in('id', ids).then(({ error }) => {
+    if (error) console.warn('Recycle cloud delete failed:', error);
+  });
+}
+
+async function syncRecycleFromCloud() {
+  if (!supabaseClient) { updateRecycleBadge(); return; }
+  try {
+    const { data, error } = await supabaseClient.from(RECYCLE_TABLE).select('*');
+    if (!error && data) {
+      if (data.length > 0) {
+        const bin = data.map(r => {
+          const task = typeof r.task === 'string' ? JSON.parse(r.task) : r.task;
+          return { ...task, deletedAt: r.deleted_at || task.deletedAt || new Date().toISOString() };
+        });
+        localStorage.setItem(RECYCLE_KEY, JSON.stringify(bin));
+      } else if (localStorage.getItem(RECYCLE_KEY)) {
+        pushRecycleToCloud(loadRecycleBin());
+      }
+    }
+  } catch(e) { console.warn('Recycle cloud load failed:', e); }
+  updateRecycleBadge();
+}
+
 function saveRecycleBin(bin) {
   localStorage.setItem(RECYCLE_KEY, JSON.stringify(bin));
+  pushRecycleToCloud(bin);
 }
 
 function purgeOldRecycleItems() {
   let bin = loadRecycleBin();
   const now = Date.now();
   const before = bin.length;
+  const expired = bin.filter(item => {
+    const deletedTime = new Date(item.deletedAt).getTime();
+    return (now - deletedTime) / 86400000 >= RECYCLE_RETENTION_DAYS;
+  });
   bin = bin.filter(item => {
     const deletedTime = new Date(item.deletedAt).getTime();
     const ageDays = (now - deletedTime) / 86400000;
@@ -2580,6 +2626,7 @@ function purgeOldRecycleItems() {
   });
   if (bin.length !== before) {
     saveRecycleBin(bin);
+    if (expired.length > 0) deleteRecycleFromCloud(expired.map(e => e.id));
   }
   updateRecycleBadge();
 }
@@ -2653,6 +2700,7 @@ function restoreTask(id) {
   syncUpsertTask(restored);
   bin = bin.filter(function(t) { return t.id !== id; });
   saveRecycleBin(bin);
+  deleteRecycleFromCloud([id]);
   updateRecycleBadge();
   renderRecycleList();
   renderAll();
@@ -2664,6 +2712,7 @@ function permanentDeleteTask(id) {
   var bin = loadRecycleBin();
   bin = bin.filter(function(t) { return t.id !== id; });
   saveRecycleBin(bin);
+  deleteRecycleFromCloud([id]);
   updateRecycleBadge();
   renderRecycleList();
   showToast('已永久删除');
@@ -2936,13 +2985,43 @@ function formatDateKey(d) {
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
-function loadScheduleItems() {
-  const raw = localStorage.getItem(SCHEDULE_STORAGE_KEY);
-  if (raw) { try { scheduleItems = JSON.parse(raw); } catch(e) { scheduleItems = {}; } }
+const SCHEDULE_TABLE = 'schedule_items';
+
+async function loadScheduleItems() {
+  let cloudOk = false;
+  try {
+    if (supabaseClient) {
+      const { data, error } = await supabaseClient.from(SCHEDULE_TABLE).select('*');
+      if (!error && data) {
+        const obj = {};
+        data.forEach(r => {
+          obj[r.id] = (typeof r.items === 'string' ? JSON.parse(r.items) : r.items) || [];
+        });
+        scheduleItems = obj;
+        localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(scheduleItems));
+        cloudOk = true;
+      }
+    }
+  } catch(e) { console.warn('Schedule cloud load failed:', e); }
+  if (!cloudOk) {
+    const raw = localStorage.getItem(SCHEDULE_STORAGE_KEY);
+    if (raw) { try { scheduleItems = JSON.parse(raw); } catch(e) { scheduleItems = {}; } }
+  }
 }
 
 function saveScheduleItems() {
   localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(scheduleItems));
+  if (!supabaseClient) return;
+  const rows = Object.keys(scheduleItems).map(date => ({
+    id: date,
+    items: scheduleItems[date] || [],
+    updated_at: new Date().toISOString()
+  }));
+  if (rows.length === 0) return;
+  supabaseClient.from(SCHEDULE_TABLE).upsert(rows).then(({ error }) => {
+    if (error) { console.warn('Schedule cloud sync failed:', error); setSyncStatus('offline', '离线'); }
+    else { setSyncStatus('synced', '已同步'); }
+  });
 }
 
 function renderSchedule() {
@@ -3166,8 +3245,9 @@ function initApp() {
   (async () => {
     await loadData();
     renderAll();
-    loadScheduleItems();
+    await loadScheduleItems();
     renderSchedule();
+    await syncRecycleFromCloud();
     purgeOldRecycleItems();
     updateRecycleBadge();
   })();
@@ -3180,6 +3260,23 @@ function initApp() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
       renderAll();
       setSyncStatus('synced', '已同步');
+    }
+    // 日程云端同步（有变化才重渲染）
+    if (supabaseClient) {
+      try {
+        const { data, error } = await supabaseClient.from(SCHEDULE_TABLE).select('*');
+        if (!error && data) {
+          const obj = {};
+          data.forEach(r => { obj[r.id] = (typeof r.items === 'string' ? JSON.parse(r.items) : r.items) || []; });
+          if (JSON.stringify(obj) !== JSON.stringify(scheduleItems)) {
+            scheduleItems = obj;
+            localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(scheduleItems));
+            renderSchedule();
+          }
+        }
+      } catch(e) {}
+      // 回收站云端同步
+      await syncRecycleFromCloud();
     }
   }, 60000);
 }
