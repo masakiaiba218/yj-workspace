@@ -701,6 +701,57 @@
     th, td { padding: 10px 12px; font-size: 13px; }
     .sync-indicator { font-size: 11px; padding: 3px 8px; }
     .sync-indicator #syncText { display: none; }
+
+    /* 仪表盘左抽屉（手机端） */
+    .stats-toggle {
+      display: flex;
+      position: fixed;
+      top: 50%;
+      left: 0;
+      transform: translateY(-50%);
+      z-index: 1004;
+      min-width: 32px;
+      padding: 8px 6px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      background: linear-gradient(135deg, #10b981, #047857);
+      border: none;
+      border-radius: 0 14px 14px 0;
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 2px 2px 14px rgba(5,150,105,0.45);
+      font-family: inherit;
+    }
+    .stats-toggle:active { opacity: 0.85; }
+    .stats-toggle .toggle-icon { font-size: 16px; line-height: 1; }
+    .stats-toggle .stats-badge { font-size: 11px; font-weight: 700; line-height: 1; }
+
+    .stats {
+      position: fixed;
+      top: 72px;
+      left: 0;
+      width: 80vw;
+      max-width: 280px;
+      max-height: calc(100vh - 92px);
+      overflow-y: auto;
+      z-index: 1003;
+      transform: translateX(-100%);
+      transition: transform .28s ease;
+      padding: 8px;
+      border-radius: 0 16px 16px 0;
+      background: var(--bg);
+      box-shadow: 2px 0 22px rgba(0,0,0,0.18);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .stats.open { transform: translateX(0); }
+    .stats .stat-card { padding: 10px 12px !important; font-size: 13px; }
+    .stats .stat-card .stat-icon { width: 36px !important; height: 36px !important; font-size: 18px !important; }
+    .stats .stat-card .num { font-size: 20px !important; }
+    .stats .stat-card .label { font-size: 12px !important; }
   }
 
   /* 手机竖屏：卡片列表替代表格 */
@@ -1072,6 +1123,9 @@
     font-weight: 700;
     margin-left: 4px;
   }
+
+  /* 仪表盘抽屉按钮：桌面端隐藏 */
+  .stats-toggle { display: none; }
 </style>
 </head>
 <body>
@@ -1151,6 +1205,10 @@
 
 <!-- Stats Cards -->
 <div class="stats" id="statsContainer"></div>
+<button class="stats-toggle" id="statsToggle" onclick="toggleStats()" aria-label="仪表盘抽屉">
+  <span class="toggle-icon">📊</span>
+  <span class="stats-badge" id="statsBadge">0</span>
+</button>
 
 <!-- Alert Banner -->
 <div id="alertBannerContainer"></div>
@@ -1833,6 +1891,9 @@ function renderStats() {
       </div>
     </div>
   `).join('');
+
+  const badge = document.getElementById('statsBadge');
+  if (badge) badge.textContent = total;
 }
 
 function renderAlertBanner() {
@@ -3008,6 +3069,16 @@ function renderAll() {
   renderStats();
   renderAlertBanner();
   renderTable();
+}
+
+// ========== Mobile Stats Drawer ==========
+function toggleStats() {
+  const stats = document.querySelector('.stats');
+  const btn = document.getElementById('statsToggle');
+  if (!stats || !btn) return;
+  stats.classList.toggle('open');
+  const icon = btn.querySelector('.toggle-icon');
+  if (icon) icon.textContent = stats.classList.contains('open') ? '✕' : '📊';
 }
 
 // Init: load data from cloud, then render (only after login)
