@@ -1088,9 +1088,11 @@
     border-radius: 3px;
     line-height: 1.6;
     flex-shrink: 0;
+    margin-left: 3px;
   }
   .schedule-day .day-badge.rest { background: #16a34a; color: #fff; }
   .schedule-day .day-badge.work { background: #dc2626; color: #fff; }
+  .schedule-day.is-festival { background: #fef2f2; }
   .schedule-day .day-info {
     font-size: 10px;
     font-weight: 600;
@@ -3317,10 +3319,16 @@ function renderSchedule() {
       if (isWeekend) dayClasses += ' weekend';
       if (isOtherMonth) dayClasses += ' other-month';
       var calInfo = getCalendarDayInfo(dateKey);
+      if (calInfo.festival) dayClasses += ' is-festival';
       dayEl.className = dayClasses;
       dayEl.dataset.date = dateKey;
       dayEl.title = '点击为 ' + dateKey + ' 添加待办事项';
       dayEl.onclick = () => selectTodoDate(dateKey);
+
+      // Build rest/work badge (法定节假日休假/调休上班)
+      var badgeHtml = '';
+      if (calInfo.rest) badgeHtml = '<span class="day-badge rest">休</span>';
+      else if (calInfo.work) badgeHtml = '<span class="day-badge work">班</span>';
 
       // Build festival / solar term info
       var infoHtml = '';
@@ -3331,7 +3339,7 @@ function renderSchedule() {
       }
 
       dayEl.innerHTML =
-        '<div class="day-date">' + date.getDate() + '</div>' +
+        '<div class="day-date">' + date.getDate() + badgeHtml + '</div>' +
         infoHtml +
         ((scheduleItems[dateKey] || []).some(i => typeof i === 'string' ? true : !i.done) ? '<span class="day-dot"></span>' : '');
 
