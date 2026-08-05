@@ -1120,6 +1120,17 @@
     flex-direction: column;
     gap: 14px;
   }
+  .schedule-todo-search input {
+    width: 100%;
+    padding: 9px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 13px;
+    outline: none;
+    background: var(--card-bg);
+    box-shadow: var(--shadow);
+  }
+  .schedule-todo-search input:focus { border-color: var(--blue); }
   .schedule-todo-add {
     display: flex;
     gap: 10px;
@@ -1208,7 +1219,35 @@
     flex-shrink: 0;
     font-weight: 600;
   }
+  .todo-item .todo-done {
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1.5px solid #10b981;
+    color: #10b981;
+    background: #fff;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .todo-item .todo-done:hover { background: #ecfdf5; }
+  .todo-item .todo-done.undo {
+    border-color: var(--orange);
+    color: var(--orange);
+    font-size: 13px;
+  }
+  .todo-item .todo-done.undo:hover { background: #fffbeb; }
   .todo-item .todo-text { flex: 1; word-break: break-all; line-height: 1.4; }
+  .todo-item .todo-text.done-text {
+    color: var(--gray);
+    text-decoration: line-through;
+  }
+  .todo-card.done-card { background: #f8fafc; }
+  .done-count { background: var(--green); }
   .todo-item .todo-del {
     cursor: pointer;
     color: var(--gray);
@@ -1501,8 +1540,11 @@
   </div>
   <div class="schedule-grid" id="scheduleGrid"></div>
 
-  <!-- 待办事项：添加 + 本周/本月列表 -->
+  <!-- 待办事项：搜索 + 添加 + 本周/本月/已完成列表 -->
   <div class="schedule-todo">
+    <div class="schedule-todo-search">
+      <input type="text" id="todoSearch" placeholder="🔍 搜索待办事项..." oninput="renderTodoLists()">
+    </div>
     <div class="schedule-todo-add">
       <input type="text" id="todoInput" placeholder="输入待办事项，回车或点击添加" onkeydown="if(event.key==='Enter')addTodoItem()">
       <input type="date" id="todoDate" title="选择日期（默认今天）">
@@ -1517,6 +1559,10 @@
         <div class="todo-card-title">📅 本月待办 <span class="todo-count" id="monthTodoCount">0</span></div>
         <ul class="todo-list" id="monthTodoList"></ul>
       </div>
+    </div>
+    <div class="todo-card done-card">
+      <div class="todo-card-title">✅ 已完成 <span class="todo-count done-count" id="doneTodoCount">0</span></div>
+      <ul class="todo-list" id="doneTodoList"></ul>
     </div>
   </div>
 </div>
@@ -3287,7 +3333,7 @@ function renderSchedule() {
       dayEl.innerHTML =
         '<div class="day-date">' + date.getDate() + '</div>' +
         infoHtml +
-        ((scheduleItems[dateKey] || []).length > 0 ? '<span class="day-dot"></span>' : '');
+        ((scheduleItems[dateKey] || []).some(i => typeof i === 'string' ? true : !i.done) ? '<span class="day-dot"></span>' : '');
 
       grid.appendChild(dayEl);
     }
@@ -3309,13 +3355,23 @@ function addTodoItem() {
     dateKey = formatDateKey(now);
   }
   if (!scheduleItems[dateKey]) scheduleItems[dateKey] = [];
-  scheduleItems[dateKey].push(text);
+  scheduleItems[dateKey].push({ text: text, done: false });
   input.value = '';
   dateInput.value = '';
   input.placeholder = '输入待办事项，回车或点击添加';
   saveScheduleItems();
   renderSchedule();
   showToast('待办已添加');
+}
+
+function toggleTodoDone(dateKey, idx) {
+  if (!scheduleItems[dateKey] || !scheduleItems[dateKey][idx]) return;
+  const item = scheduleItems[dateKey][idx];
+  if (typeof item === 'string') scheduleItems[dateKey][idx] = { text: item, done: true };
+  else item.done = !item.done;
+  saveScheduleItems();
+  renderSchedule();
+  showToast(scheduleItems[dateKey][idx].done ? '已标记完成，移入已完成' : '已恢复为待办');
 }
 
 function selectTodoDate(dateKey) {
@@ -3356,52 +3412,66 @@ function renderTodoLists() {
 
   const weekItems = [];
   const monthItems = [];
+  const doneItems = [];
+  const searchEl = document.getElementById('todoSearch');
+  const search = searchEl ? searchEl.value.trim().toLowerCase() : '';
   Object.keys(scheduleItems).forEach(dateKey => {
     const d = new Date(dateKey);
     if (isNaN(d.getTime())) return;
     const items = scheduleItems[dateKey] || [];
     items.forEach((ev, idx) => {
-      const entry = { dateKey: dateKey, d: d, ev: ev, idx: idx };
-      if (d >= monday && d <= sunday) weekItems.push(entry);
-      if (d >= monthStart && d <= monthEnd) monthItems.push(entry);
+      const done = typeof ev === 'string' ? false : !!ev.done;
+      const text = typeof ev === 'string' ? ev : ev.text;
+      if (search && !text.toLowerCase().includes(search)) return;
+      const entry = { dateKey: dateKey, d: d, ev: text, idx: idx, done: done };
+      if (done) doneItems.push(entry);
+      else {
+        if (d >= monday && d <= sunday) weekItems.push(entry);
+        if (d >= monthStart && d <= monthEnd) monthItems.push(entry);
+      }
     });
   });
   weekItems.sort((a, b) => a.d - b.d);
   monthItems.sort((a, b) => a.d - b.d);
+  doneItems.sort((a, b) => b.d - a.d);
 
   const weekList = document.getElementById('weekTodoList');
   const monthList = document.getElementById('monthTodoList');
+  const doneList = document.getElementById('doneTodoList');
   const weekCount = document.getElementById('weekTodoCount');
   const monthCount = document.getElementById('monthTodoCount');
+  const doneCount = document.getElementById('doneTodoCount');
+
+  function itemHtml(it, isDone) {
+    const undoBtn = isDone
+      ? '<span class="todo-done undo" title="恢复为待办" onclick="toggleTodoDone(\'' + it.dateKey + '\',' + it.idx + ')">↩</span>'
+      : '<span class="todo-done" title="标记完成" onclick="toggleTodoDone(\'' + it.dateKey + '\',' + it.idx + ')">✓</span>';
+    return '<li class="todo-item">' +
+      '<span class="todo-date">' + (it.d.getMonth()+1) + '/' + it.d.getDate() + ' ' + WEEK_NAMES[it.d.getDay()] + '</span>' +
+      undoBtn +
+      '<span class="todo-text' + (isDone ? ' done-text' : '') + '">' + escapeHtml(it.ev) + '</span>' +
+      '<span class="todo-del" onclick="deleteTodoItem(\'' + it.dateKey + '\',' + it.idx + ')">✕</span>' +
+      '</li>';
+  }
 
   if (weekList) {
-    if (weekItems.length === 0) {
-      weekList.innerHTML = '<li class="todo-empty">本周暂无待办</li>';
-    } else {
-      weekList.innerHTML = weekItems.map(it =>
-        '<li class="todo-item">' +
-          '<span class="todo-date">' + (it.d.getMonth()+1) + '/' + it.d.getDate() + ' ' + WEEK_NAMES[it.d.getDay()] + '</span>' +
-          '<span class="todo-text">' + escapeHtml(it.ev) + '</span>' +
-          '<span class="todo-del" onclick="deleteTodoItem(\'' + it.dateKey + '\',' + it.idx + ')">✕</span>' +
-        '</li>'
-      ).join('');
-    }
+    weekList.innerHTML = weekItems.length === 0
+      ? '<li class="todo-empty">' + (search ? '无匹配结果' : '本周暂无待办') + '</li>'
+      : weekItems.map(it => itemHtml(it, false)).join('');
   }
   if (monthList) {
-    if (monthItems.length === 0) {
-      monthList.innerHTML = '<li class="todo-empty">本月暂无待办</li>';
-    } else {
-      monthList.innerHTML = monthItems.map(it =>
-        '<li class="todo-item">' +
-          '<span class="todo-date">' + (it.d.getMonth()+1) + '/' + it.d.getDate() + ' ' + WEEK_NAMES[it.d.getDay()] + '</span>' +
-          '<span class="todo-text">' + escapeHtml(it.ev) + '</span>' +
-          '<span class="todo-del" onclick="deleteTodoItem(\'' + it.dateKey + '\',' + it.idx + ')">✕</span>' +
-        '</li>'
-      ).join('');
-    }
+    monthList.innerHTML = monthItems.length === 0
+      ? '<li class="todo-empty">' + (search ? '无匹配结果' : '本月暂无待办') + '</li>'
+      : monthItems.map(it => itemHtml(it, false)).join('');
+  }
+  if (doneList) {
+    doneList.innerHTML = doneItems.length === 0
+      ? '<li class="todo-empty">' + (search ? '无匹配结果' : '暂无已完成事项') + '</li>'
+      : doneItems.map(it => itemHtml(it, true)).join('');
   }
   if (weekCount) weekCount.textContent = weekItems.length;
   if (monthCount) monthCount.textContent = monthItems.length;
+  if (doneCount) doneCount.textContent = doneItems.length;
 }
 
 function changeScheduleMonth(delta) {
