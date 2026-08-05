@@ -715,7 +715,7 @@
       left: 0;
       transform: translateY(-50%);
       z-index: 1004;
-      min-width: 32px;
+      min-width: 48px;
       padding: 8px 6px;
       flex-direction: column;
       align-items: center;
@@ -745,6 +745,17 @@
       justify-content: center;
       padding: 0 4px;
     }
+    .stats-toggle .stats-warn {
+      font-size: 10px;
+      font-weight: 600;
+      color: #fff;
+      line-height: 1.3;
+      text-align: center;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+    .stats-toggle.is-open .stats-badge,
+    .stats-toggle.is-open .stats-warn { display: none; }
 
     .stats {
       position: fixed;
@@ -1237,6 +1248,8 @@
 <button class="stats-toggle" id="statsToggle" onclick="toggleStats()" aria-label="仪表盘抽屉">
   <span class="toggle-icon">📊</span>
   <span class="stats-badge" id="statsBadge">0</span>
+  <span class="stats-warn" id="statsWarnInternal">校内 0</span>
+  <span class="stats-warn" id="statsWarnSubmit">报送 0</span>
 </button>
 
 <!-- Alert Banner -->
@@ -1935,6 +1948,10 @@ function renderStats() {
   const badge2 = document.getElementById('recycleBadge2');
   if (badge2) badge2.textContent = loadRecycleBin().length > 0 ? loadRecycleBin().length : '';
   if (badge2) badge2.style.display = loadRecycleBin().length > 0 ? 'inline-flex' : 'none';
+  const warnInternal = document.getElementById('statsWarnInternal');
+  const warnSubmit = document.getElementById('statsWarnSubmit');
+  if (warnInternal) warnInternal.textContent = '校内 ' + (internalOverdue + internalWarning);
+  if (warnSubmit) warnSubmit.textContent = '报送 ' + (submitOverdue + submitWarning);
 }
 
 function renderAlertBanner() {
@@ -3118,8 +3135,10 @@ function toggleStats() {
   const btn = document.getElementById('statsToggle');
   if (!stats || !btn) return;
   stats.classList.toggle('open');
+  const isOpen = stats.classList.contains('open');
+  btn.classList.toggle('is-open', isOpen);
   const icon = btn.querySelector('.toggle-icon');
-  if (icon) icon.textContent = stats.classList.contains('open') ? '✕' : '📊';
+  if (icon) icon.textContent = isOpen ? '✕' : '📊';
 }
 
 function closeStatsDrawer() {
@@ -3127,6 +3146,7 @@ function closeStatsDrawer() {
   const btn = document.getElementById('statsToggle');
   if (stats) stats.classList.remove('open');
   if (btn) {
+    btn.classList.remove('is-open');
     const icon = btn.querySelector('.toggle-icon');
     if (icon) icon.textContent = '📊';
   }
