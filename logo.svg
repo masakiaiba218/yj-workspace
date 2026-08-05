@@ -1,0 +1,21 @@
+<svg viewBox="0 0 120 100" width="480" height="400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="yj-flow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6ee7b7"/>
+      <stop offset="45%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#0d9488"/>
+    </linearGradient>
+    <filter id="yj-glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="2.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <circle cx="60" cy="50" r="45" fill="#022c22"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 22 L44 50 L44 82 M44 50 L68 22 M68 22 L90 22 L90 62 Q90 84 70 84 Q55 84 53 72"
+      stroke="#34d399" stroke-width="9" opacity="0.22" filter="url(#yj-glow)"/>
+    <path d="M18 22 L44 50 L44 82 M44 50 L68 22 M68 22 L90 22 L90 62 Q90 84 70 84 Q55 84 53 72"
+      stroke="url(#yj-flow)" stroke-width="5.5"/>
+  </g>
+  <circle cx="18" cy="22" r="3.2" fill="#6ee7b7"/>
+</svg>
