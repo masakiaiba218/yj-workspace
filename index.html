@@ -1098,6 +1098,16 @@
     line-height: 1.2;
     margin-bottom: 2px;
   }
+  .schedule-day .day-dot {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #ef4444;
+    box-shadow: 0 0 0 2px rgba(239,68,68,0.2);
+  }
   .schedule-day .day-info.festival { color: #dc2626; }
   .schedule-day .day-info.solar { color: #15803d; }
   .schedule-day.is-rest { background: #f0fdf4; }
@@ -1228,6 +1238,7 @@
     .schedule-day { min-height: 46px; padding: 3px 3px; border-radius: 8px; }
     .schedule-day .day-date { font-size: 12px; }
     .schedule-day .day-info { font-size: 9px; }
+    .schedule-day .day-dot { width: 5px; height: 5px; top: 3px; right: 3px; }
     .schedule-todo { margin-top: 14px; }
     .schedule-todo-add { flex-wrap: wrap; padding: 10px 12px; }
     .schedule-todo-add input[type="date"] { flex: 0 0 auto; }
@@ -3275,7 +3286,8 @@ function renderSchedule() {
 
       dayEl.innerHTML =
         '<div class="day-date">' + date.getDate() + '</div>' +
-        infoHtml;
+        infoHtml +
+        ((scheduleItems[dateKey] || []).length > 0 ? '<span class="day-dot"></span>' : '');
 
       grid.appendChild(dayEl);
     }
