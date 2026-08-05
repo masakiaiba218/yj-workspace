@@ -219,6 +219,15 @@
   .stats-toggle { display: none; }
   /* 抽屉内操作区：桌面端隐藏 */
   .stats-drawer-actions { display: none; }
+  /* 同步指示器：桌面端只在 sidebar 显示 */
+  .sidebar-logo .sync-indicator {
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.12);
+    font-size: 11px;
+  }
+  .sidebar-logo .sync-indicator .sync-dot { width: 8px; height: 8px; }
+  .main-content .sync-indicator { display: none; }
 
   .stats {
     display: grid;
@@ -706,6 +715,9 @@
     th, td { padding: 10px 12px; font-size: 13px; }
     .sync-indicator { font-size: 11px; padding: 3px 8px; }
     .sync-indicator #syncText { display: none; }
+    /* 移动端：同步指示器回到 h1 内的"工作"后，sidebar 内隐藏 */
+    .sidebar-logo .sync-indicator { display: none; }
+    .main-content .sync-indicator { display: flex; }
 
     /* 仪表盘左抽屉（手机端） */
     .stats-toggle {
@@ -1193,10 +1205,14 @@
 
 <!-- Sidebar -->
 <div class="sidebar">
-  <div class="sidebar-logo">
-    <span class="logo-icon">📋</span>
-    YJ
+<div class="sidebar-logo">
+  <span class="logo-icon">📋</span>
+  YJ
+  <div class="sync-indicator syncing" id="syncIndicatorSidebar" onclick="manualSync()" style="cursor:pointer; margin-left:auto;" title="点击手动同步">
+    <span class="sync-dot"></span>
+    <span id="syncTextSidebar">同步中</span>
   </div>
+</div>
   <div class="sidebar-section-label">功能分区</div>
   <div class="sidebar-item active" onclick="switchSection('work')">
     <span class="item-icon">💼</span> 工作
@@ -1643,11 +1659,12 @@ function rowToTask(r) {
 
 // --- Sync Status ---
 function setSyncStatus(status, text) {
-  const indicator = document.getElementById('syncIndicator');
-  const textEl = document.getElementById('syncText');
-  if (!indicator) return;
-  indicator.className = 'sync-indicator ' + status;
-  if (textEl) textEl.textContent = text;
+  const indicators = document.querySelectorAll('.sync-indicator');
+  indicators.forEach((indicator) => {
+    indicator.className = 'sync-indicator ' + status;
+    const textEl = indicator.querySelector('[id^="syncText"]');
+    if (textEl) textEl.textContent = text;
+  });
 }
 
 // --- Cloud Sync Functions ---
