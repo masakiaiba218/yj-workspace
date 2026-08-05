@@ -1002,10 +1002,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
     border-radius: 8px;
-    min-height: 68px;
+    min-height: 52px;
     text-align: center;
     line-height: 1.3;
   }
@@ -1015,11 +1015,13 @@
   .schedule-day {
     background: var(--card-bg);
     border-radius: 8px;
-    padding: 4px 5px;
-    min-height: 68px;
+    padding: 3px 4px;
+    min-height: 52px;
     box-shadow: var(--shadow);
     display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
     transition: border-color .15s, box-shadow .15s;
     border: 2px solid transparent;
@@ -1223,13 +1225,8 @@
     }
     .schedule-col-header { font-size: 11px; padding: 4px 0 2px; }
     .schedule-week-cell { font-size: 11px; }
-    .schedule-day { min-height: 60px; padding: 4px 3px; border-radius: 8px; }
+    .schedule-day { min-height: 46px; padding: 3px 3px; border-radius: 8px; }
     .schedule-day .day-date { font-size: 12px; }
-    .schedule-day .day-events { gap: 2px; }
-    .schedule-event { font-size: 9px; padding: 1px 3px; }
-    .schedule-event .del-btn { font-size: 11px; }
-    .schedule-add-input { font-size: 10px; padding: 2px 4px; }
-    .schedule-add-hint { display: none; }
     .schedule-day .day-info { font-size: 9px; }
     .schedule-todo { margin-top: 14px; }
     .schedule-todo-add { flex-wrap: wrap; padding: 10px 12px; }
@@ -1243,7 +1240,7 @@
       grid-template-columns: 34px repeat(7, minmax(0, 1fr));
       gap: 2px;
     }
-    .schedule-day { min-height: 58px; padding: 4px 2px; }
+    .schedule-day { min-height: 44px; padding: 3px 2px; }
     .schedule-day .day-date { font-size: 12px; }
     .schedule-day .day-badge { font-size: 8px; padding: 0 3px; }
     .schedule-day .day-info { font-size: 9px; }
@@ -3263,26 +3260,12 @@ function renderSchedule() {
       if (isWeekend) dayClasses += ' weekend';
       if (isOtherMonth) dayClasses += ' other-month';
       var calInfo = getCalendarDayInfo(dateKey);
-      if (calInfo.rest) dayClasses += ' is-rest';
-      if (calInfo.work) dayClasses += ' is-work';
       dayEl.className = dayClasses;
       dayEl.dataset.date = dateKey;
-      dayEl.onclick = () => showScheduleInput(dateKey);
+      dayEl.title = '点击为 ' + dateKey + ' 添加待办事项';
+      dayEl.onclick = () => selectTodoDate(dateKey);
 
-      const events = scheduleItems[dateKey] || [];
-      var eventsHtml = events.map(function(ev, idx) {
-        return '<div class="schedule-event" onclick="event.stopPropagation()">' +
-          '<span>' + escapeHtml(ev) + '</span>' +
-          '<span class="del-btn" onclick="deleteScheduleEvent(\'' + dateKey + '\', ' + idx + ')">×</span>' +
-          '</div>';
-      }).join('');
-
-      // Build badge HTML (休/班)
-      var badgeHtml = '';
-      if (calInfo.rest) badgeHtml = '<span class="day-badge rest">休</span>';
-      else if (calInfo.work) badgeHtml = '<span class="day-badge work">班</span>';
-
-      // Build festival/solar term info
+      // Build festival / solar term info
       var infoHtml = '';
       if (calInfo.festival) {
         infoHtml = '<div class="day-info festival">' + escapeHtml(calInfo.festival) + '</div>';
@@ -3291,13 +3274,8 @@ function renderSchedule() {
       }
 
       dayEl.innerHTML =
-        '<div class="day-header">' +
-          '<span class="day-date">' + (date.getMonth()+1) + '/' + date.getDate() + '</span>' +
-          badgeHtml +
-        '</div>' +
-        infoHtml +
-        '<div class="day-events">' + eventsHtml + '</div>' +
-        '<div class="schedule-add-hint">+ 添加</div>';
+        '<div class="day-date">' + date.getDate() + '</div>' +
+        infoHtml;
 
       grid.appendChild(dayEl);
     }
@@ -3322,9 +3300,23 @@ function addTodoItem() {
   scheduleItems[dateKey].push(text);
   input.value = '';
   dateInput.value = '';
+  input.placeholder = '输入待办事项，回车或点击添加';
   saveScheduleItems();
   renderSchedule();
   showToast('待办已添加');
+}
+
+function selectTodoDate(dateKey) {
+  const dateInput = document.getElementById('todoDate');
+  const input = document.getElementById('todoInput');
+  if (dateInput) dateInput.value = dateKey;
+  if (input) {
+    input.placeholder = '为 ' + dateKey + ' 添加待办事项，回车或点击添加';
+    input.focus();
+  }
+  const addBox = document.querySelector('.schedule-todo-add');
+  if (addBox) addBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  showToast('已选择 ' + dateKey + '，请输入待办事项');
 }
 
 function deleteTodoItem(dateKey, idx) {
