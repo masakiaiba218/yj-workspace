@@ -714,13 +714,14 @@
 
   @media (max-width: 900px) {
     body { flex-direction: column; }
-    .sidebar { width: 100%; min-height: auto; flex-direction: row; flex-wrap: wrap; padding: 12px 16px; gap: 4px; overflow-x: visible; position: relative; }
+    .sidebar { width: 100%; min-height: auto; flex-direction: row; flex-wrap: nowrap; padding: 12px 16px; gap: 4px; overflow-x: auto; position: relative; }
     .sidebar-logo { padding: 0 12px 0 0; border-right: 1px solid rgba(255,255,255,0.2); margin-right: 8px; font-size: 16px; flex: 0 0 auto; }
     .sidebar-section-label { display: none; }
     .sidebar-item { padding: 8px 14px; border-left: none; border-bottom: 3px solid transparent; }
     .sidebar-item.active { border-bottom-color: #6ee7b7; border-left-color: transparent; }
-    .sidebar-sync { flex: 1 1 100%; padding: 0 0 8px; }
-    .sidebar-sync .sync-indicator { font-size: 11px; padding: 3px 10px; }
+    .sidebar-sync { flex: 0 0 auto; padding: 0 4px 0 0; }
+    .sidebar-sync .sync-indicator { font-size: 11px; padding: 4px 9px; }
+    .sidebar-sync .sync-indicator #syncTextSidebar { display: none; }
     .main-content { padding: 14px; }
     .header h1 { font-size: 20px; }
     .search-box { margin-left: 0; width: 100%; }
