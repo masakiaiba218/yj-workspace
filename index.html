@@ -219,14 +219,25 @@
   .stats-toggle { display: none; }
   /* 抽屉内操作区：桌面端隐藏 */
   .stats-drawer-actions { display: none; }
-  /* 同步指示器：桌面端只在 sidebar 显示 */
-  .sidebar-logo .sync-indicator {
-    padding: 4px 12px;
+  /* 同步指示器：桌面端在 sidebar-logo 下方独立行 */
+  .sidebar-sync {
+    padding: 0 18px 18px;
+  }
+  .sidebar-sync .sync-indicator {
+    padding: 5px 14px;
     border-radius: 20px;
     background: rgba(255,255,255,0.12);
-    font-size: 11px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background .15s;
   }
-  .sidebar-logo .sync-indicator .sync-dot { width: 8px; height: 8px; }
+  .sidebar-sync .sync-indicator:hover { background: rgba(255,255,255,0.22); }
+  .sidebar-sync .sync-indicator .sync-dot { width: 9px; height: 9px; }
   .main-content .sync-indicator { display: none; }
 
   .stats {
@@ -703,11 +714,13 @@
 
   @media (max-width: 900px) {
     body { flex-direction: column; }
-    .sidebar { width: 100%; min-height: auto; flex-direction: row; padding: 12px 16px; gap: 4px; overflow-x: auto; position: relative; }
-    .sidebar-logo { padding: 0 12px 0 0; border-right: 1px solid rgba(255,255,255,0.2); margin-right: 8px; font-size: 16px; }
+    .sidebar { width: 100%; min-height: auto; flex-direction: row; flex-wrap: wrap; padding: 12px 16px; gap: 4px; overflow-x: visible; position: relative; }
+    .sidebar-logo { padding: 0 12px 0 0; border-right: 1px solid rgba(255,255,255,0.2); margin-right: 8px; font-size: 16px; flex: 0 0 auto; }
     .sidebar-section-label { display: none; }
     .sidebar-item { padding: 8px 14px; border-left: none; border-bottom: 3px solid transparent; }
     .sidebar-item.active { border-bottom-color: #6ee7b7; border-left-color: transparent; }
+    .sidebar-sync { flex: 1 1 100%; padding: 0 0 8px; }
+    .sidebar-sync .sync-indicator { font-size: 11px; padding: 3px 10px; }
     .main-content { padding: 14px; }
     .header h1 { font-size: 20px; }
     .search-box { margin-left: 0; width: 100%; }
@@ -715,9 +728,8 @@
     th, td { padding: 10px 12px; font-size: 13px; }
     .sync-indicator { font-size: 11px; padding: 3px 8px; }
     .sync-indicator #syncText { display: none; }
-    /* 移动端：同步指示器回到 h1 内的"工作"后，sidebar 内隐藏 */
-    .sidebar-logo .sync-indicator { display: none; }
-    .main-content .sync-indicator { display: flex; }
+    /* 移动端：同步指示器在 sidebar 显示，h1 内隐藏 */
+    .main-content .sync-indicator { display: none !important; }
 
     /* 仪表盘左抽屉（手机端） */
     .stats-toggle {
@@ -1208,7 +1220,9 @@
 <div class="sidebar-logo">
   <span class="logo-icon">📋</span>
   YJ
-  <div class="sync-indicator syncing" id="syncIndicatorSidebar" onclick="manualSync()" style="cursor:pointer; margin-left:auto;" title="点击手动同步">
+</div>
+<div class="sidebar-sync">
+  <div class="sync-indicator syncing" id="syncIndicatorSidebar" onclick="manualSync()" style="cursor:pointer;" title="点击同步整个工作台（任务/日程/回收站）">
     <span class="sync-dot"></span>
     <span id="syncTextSidebar">同步中</span>
   </div>
@@ -3206,14 +3220,38 @@ function deleteScheduleEvent(dateKey, idx) {
 // ========== Init ==========
 async function manualSync() {
   setSyncStatus('syncing', '同步中');
-  const cloudData = await syncLoadFromCloud();
-  if (cloudData !== null) {
-    tasks = cloudData;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-    renderAll();
-    setSyncStatus('synced', '已同步');
-    showToast('数据已同步');
-  } else {
+  let success = false;
+  try {
+    // 1. 任务数据
+    const cloudTasks = await syncLoadFromCloud();
+    if (cloudTasks !== null) {
+      tasks = cloudTasks;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      renderAll();
+      success = true;
+    }
+    // 2. 日程数据
+    if (supabaseClient) {
+      const { data, error } = await supabaseClient.from(SCHEDULE_TABLE).select('*');
+      if (!error && data) {
+        const obj = {};
+        data.forEach(r => { obj[r.id] = (typeof r.items === 'string' ? JSON.parse(r.items) : r.items) || []; });
+        scheduleItems = obj;
+        localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(scheduleItems));
+        renderSchedule();
+        success = true;
+      }
+    }
+    // 3. 回收站数据
+    await syncRecycleFromCloud();
+    if (success) {
+      setSyncStatus('synced', '已同步');
+      showToast('整个工作台已同步');
+    } else {
+      setSyncStatus('offline', '离线');
+      showToast('同步失败，请检查网络', 'error');
+    }
+  } catch (e) {
     setSyncStatus('offline', '离线');
     showToast('同步失败，请检查网络', 'error');
   }
