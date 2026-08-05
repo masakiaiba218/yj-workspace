@@ -968,12 +968,36 @@
   .schedule-day.is-rest { background: #f0fdf4; }
   .schedule-day.is-work { background: #fef2f2; }
 
+  /* 手机端（≤768px）：8列自适应铺满，不再横向滚动 */
   @media (max-width: 768px) {
     .schedule-grid {
-      grid-template-columns: 50px repeat(7, minmax(80px, 1fr));
-      overflow-x: auto;
+      grid-template-columns: 40px repeat(7, minmax(0, 1fr));
+      gap: 3px;
+      overflow-x: hidden;
       padding-bottom: 8px;
     }
+    .schedule-col-header { font-size: 11px; padding: 4px 0 2px; }
+    .schedule-week-cell { font-size: 11px; }
+    .schedule-day { min-height: 88px; padding: 6px 3px; border-radius: 8px; }
+    .schedule-day .day-date { font-size: 13px; }
+    .schedule-day .day-events { gap: 2px; }
+    .schedule-event { font-size: 10px; padding: 1px 4px; }
+    .schedule-event .del-btn { font-size: 12px; }
+    .schedule-add-input { font-size: 10px; padding: 2px 4px; }
+    .schedule-add-hint { display: none; }
+  }
+
+  /* 手机竖屏：更紧凑，周标签列收窄，日期格子缩小 */
+  @media (max-width: 768px) and (orientation: portrait) {
+    .schedule-grid {
+      grid-template-columns: 34px repeat(7, minmax(0, 1fr));
+      gap: 2px;
+    }
+    .schedule-day { min-height: 80px; padding: 5px 2px; }
+    .schedule-day .day-date { font-size: 12px; }
+    .schedule-day .day-badge { font-size: 8px; padding: 0 3px; }
+    .schedule-day .day-info { font-size: 9px; }
+    .schedule-week-cell { font-size: 10px; }
   }
 
   /* Recycle Bin */
