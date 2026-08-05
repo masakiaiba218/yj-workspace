@@ -1,5 +1,5 @@
-/* YJ工作台 Service Worker — 离线缓存应用外壳 */
-const CACHE = 'yj-workspace-v1';
+/* YJ工作台 Service Worker — HTML 网络优先，静态资源缓存优先 */
+const CACHE = 'yj-workspace-v2';
 const SHELL = [
   './',
   './index.html',
@@ -27,26 +27,40 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
 
   const url = new URL(req.url);
+  if (url.origin !== self.location.origin) {
+    // 跨域（Supabase / CDN）：网络优先，失败不缓存
+    e.respondWith(fetch(req).catch(() => caches.match(req)));
+    return;
+  }
 
-  // 同源请求：cache-first，回退到网络
-  if (url.origin === self.location.origin) {
+  const isNavigate = req.mode === 'navigate';
+  const isHtml = isNavigate || url.pathname.endsWith('.html') || url.pathname === '/';
+
+  if (isHtml) {
+    // HTML：网络优先 —— 始终获取最新版，离线时回退缓存
     e.respondWith(
-      caches.match(req).then((hit) => {
-        if (hit) return hit;
-        return fetch(req).then((resp) => {
-          if (resp && resp.status === 200 && resp.type === 'basic') {
-            const copy = resp.clone();
-            caches.open(CACHE).then((c) => c.put(req, copy));
-          }
-          return resp;
-        }).catch(() => caches.match('./index.html'));
-      })
+      fetch(req).then((resp) => {
+        if (resp && resp.status === 200 && resp.type === 'basic') {
+          const copy = resp.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
+        }
+        return resp;
+      }).catch(() => caches.match(req).then((hit) => hit || caches.match('./index.html')))
     );
     return;
   }
 
-  // 跨域（Supabase / CDN）：网络优先，失败不缓存
+  // 静态资源（图标/manifest 等）：缓存优先
   e.respondWith(
-    fetch(req).catch(() => caches.match(req))
+    caches.match(req).then((hit) => {
+      if (hit) return hit;
+      return fetch(req).then((resp) => {
+        if (resp && resp.status === 200 && resp.type === 'basic') {
+          const copy = resp.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
+        }
+        return resp;
+      }).catch(() => caches.match('./index.html'));
+    })
   );
 });
