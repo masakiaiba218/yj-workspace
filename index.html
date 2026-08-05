@@ -39,6 +39,7 @@
     min-height: 100vh;
     padding: 0;
     display: flex;
+    overflow-x: hidden;
   }
 
   /* Sidebar */
@@ -678,7 +679,7 @@
     padding: 0 4px;
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: 900px) {
     body { flex-direction: column; }
     .sidebar { width: 100%; min-height: auto; flex-direction: row; padding: 12px 16px; gap: 4px; overflow-x: auto; position: relative; }
     .sidebar-logo { padding: 0 12px 0 0; border-right: 1px solid rgba(255,255,255,0.2); margin-right: 8px; font-size: 16px; }
@@ -695,7 +696,7 @@
   }
 
   /* 手机竖屏：卡片列表替代表格 */
-  @media (max-width: 768px) and (orientation: portrait) {
+  @media (max-width: 900px) and (orientation: portrait) {
     .mobile-card-list {
       display: flex;
       flex-direction: column;
@@ -854,9 +855,11 @@
 
   .schedule-grid {
     display: grid;
-    grid-template-columns: 62px repeat(7, 1fr);
+    grid-template-columns: 62px repeat(7, minmax(0, 1fr));
     gap: 4px;
+    width: 100%;
   }
+  .schedule-grid > * { min-width: 0; }
   .schedule-col-header {
     text-align: center;
     font-size: 12px;
@@ -968,8 +971,8 @@
   .schedule-day.is-rest { background: #f0fdf4; }
   .schedule-day.is-work { background: #fef2f2; }
 
-  /* 手机端（≤768px）：8列自适应铺满，不再横向滚动 */
-  @media (max-width: 768px) {
+  /* 手机端/小屏（≤900px）：8列自适应铺满，不再横向滚动 */
+  @media (max-width: 900px) {
     .schedule-grid {
       grid-template-columns: 40px repeat(7, minmax(0, 1fr));
       gap: 3px;
@@ -988,7 +991,7 @@
   }
 
   /* 手机竖屏：更紧凑，周标签列收窄，日期格子缩小 */
-  @media (max-width: 768px) and (orientation: portrait) {
+  @media (max-width: 900px) and (orientation: portrait) {
     .schedule-grid {
       grid-template-columns: 34px repeat(7, minmax(0, 1fr));
       gap: 2px;
