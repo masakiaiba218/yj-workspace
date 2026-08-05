@@ -215,6 +215,9 @@
   .btn-danger:hover { background: #fee2e2; }
 
   /* Stats Cards */
+  /* 仪表盘抽屉把手：桌面端隐藏（移动端 media query 覆盖此规则） */
+  .stats-toggle { display: none; }
+
   .stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -1123,9 +1126,6 @@
     font-weight: 700;
     margin-left: 4px;
   }
-
-  /* 仪表盘抽屉按钮：桌面端隐藏 */
-  .stats-toggle { display: none; }
 </style>
 </head>
 <body>
