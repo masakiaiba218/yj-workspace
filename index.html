@@ -3397,17 +3397,30 @@ function deleteTodoItem(dateKey, idx) {
 
 function renderTodoLists() {
   const now = new Date();
-  // 本周：周一到周日
-  const dow = now.getDay();
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1));
-  monday.setHours(0,0,0,0);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
+  const monthDate = getDisplayedMonth();   // 跟随月历显示月份
+  const viewYear = monthDate.getFullYear();
+  const viewMonth = monthDate.getMonth();
+  const isCurrentMonth = (viewYear === now.getFullYear() && viewMonth === now.getMonth());
+
+  // 本周：当月显示真实本周；查看其他月份时显示该月第一周（月历第一行）
+  let weekStart;
+  if (isCurrentMonth) {
+    const dow = now.getDay();
+    weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1));
+  } else {
+    const firstDay = new Date(viewYear, viewMonth, 1);
+    const fdDow = firstDay.getDay();
+    weekStart = new Date(firstDay);
+    weekStart.setDate(1 - (fdDow === 0 ? 6 : fdDow - 1));
+  }
+  weekStart.setHours(0,0,0,0);
+  const sunday = new Date(weekStart);
+  sunday.setDate(weekStart.getDate() + 6);
   sunday.setHours(23,59,59,999);
-  // 本月
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  // 本月（月历显示月份）
+  const monthStart = new Date(viewYear, viewMonth, 1);
+  const monthEnd = new Date(viewYear, viewMonth + 1, 0);
   monthEnd.setHours(23,59,59,999);
 
   const weekItems = [];
