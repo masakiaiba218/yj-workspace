@@ -1944,7 +1944,7 @@ function renderStats() {
   `;
 
   const badge = document.getElementById('statsBadge');
-  if (badge) badge.textContent = total;
+  if (badge) badge.textContent = pending;
   const badge2 = document.getElementById('recycleBadge2');
   if (badge2) badge2.textContent = loadRecycleBin().length > 0 ? loadRecycleBin().length : '';
   if (badge2) badge2.style.display = loadRecycleBin().length > 0 ? 'inline-flex' : 'none';
