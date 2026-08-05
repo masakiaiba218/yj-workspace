@@ -217,6 +217,8 @@
   /* Stats Cards */
   /* 仪表盘抽屉把手：桌面端隐藏（移动端 media query 覆盖此规则） */
   .stats-toggle { display: none; }
+  /* 抽屉内操作区：桌面端隐藏 */
+  .stats-drawer-actions { display: none; }
 
   .stats {
     display: grid;
@@ -768,6 +770,20 @@
     .stats .stat-card .stat-icon { width: 36px !important; height: 36px !important; font-size: 18px !important; }
     .stats .stat-card .num { font-size: 20px !important; }
     .stats .stat-card .label { font-size: 12px !important; }
+
+    /* 抽屉内操作区（导出/回收站） */
+    .stats-drawer-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 8px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+    .stats-drawer-actions .btn { width: 100%; justify-content: center; }
+
+    /* 头部操作按钮：导出/回收站移入抽屉后隐藏 */
+    .hide-on-mobile { display: none !important; }
   }
 
   /* 手机竖屏：卡片列表替代表格 */
@@ -1204,10 +1220,10 @@
     </div>
   </h1>
   <div class="header-actions">
-    <button class="btn btn-ghost" onclick="openExportModal()">
+    <button class="btn btn-ghost hide-on-mobile" onclick="openExportModal()">
       <span>📥</span> 导出数据
     </button>
-    <button class="btn btn-ghost" onclick="openRecycleModal()" id="recycleBtn">
+    <button class="btn btn-ghost hide-on-mobile" onclick="openRecycleModal()" id="recycleBtn">
       <span>🗑</span> 回收站<span class="recycle-count-badge" id="recycleBadge" style="display:none;">0</span>
     </button>
     <button class="btn btn-primary" onclick="openModal()">
@@ -1903,10 +1919,22 @@ function renderStats() {
         <div class="label">${c.label}</div>
       </div>
     </div>
-  `).join('');
+  `).join('') + `
+    <div class="stats-drawer-actions">
+      <button class="btn btn-ghost" onclick="drawerAction('export')">
+        <span>📥</span> 导出数据
+      </button>
+      <button class="btn btn-ghost" onclick="drawerAction('recycle')">
+        <span>🗑</span> 回收站<span class="recycle-count-badge" id="recycleBadge2" style="display:none;">0</span>
+      </button>
+    </div>
+  `;
 
   const badge = document.getElementById('statsBadge');
   if (badge) badge.textContent = total;
+  const badge2 = document.getElementById('recycleBadge2');
+  if (badge2) badge2.textContent = loadRecycleBin().length > 0 ? loadRecycleBin().length : '';
+  if (badge2) badge2.style.display = loadRecycleBin().length > 0 ? 'inline-flex' : 'none';
 }
 
 function renderAlertBanner() {
@@ -3092,6 +3120,22 @@ function toggleStats() {
   stats.classList.toggle('open');
   const icon = btn.querySelector('.toggle-icon');
   if (icon) icon.textContent = stats.classList.contains('open') ? '✕' : '📊';
+}
+
+function closeStatsDrawer() {
+  const stats = document.querySelector('.stats');
+  const btn = document.getElementById('statsToggle');
+  if (stats) stats.classList.remove('open');
+  if (btn) {
+    const icon = btn.querySelector('.toggle-icon');
+    if (icon) icon.textContent = '📊';
+  }
+}
+
+function drawerAction(type) {
+  closeStatsDrawer();
+  if (type === 'export') openExportModal();
+  else if (type === 'recycle') openRecycleModal();
 }
 
 // Init: load data from cloud, then render (only after login)
