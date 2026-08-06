@@ -1544,15 +1544,10 @@
   </div>
   <div class="schedule-grid" id="scheduleGrid"></div>
 
-  <!-- 待办事项：搜索 + 添加 + 本周/本月/已完成列表 -->
+  <!-- 待办事项：搜索 + 本周/本月/已完成列表（添加请通过月历点击日期弹窗） -->
   <div class="schedule-todo">
     <div class="schedule-todo-search">
       <input type="text" id="todoSearch" placeholder="🔍 搜索待办事项..." oninput="renderTodoLists()">
-    </div>
-    <div class="schedule-todo-add">
-      <input type="text" id="todoInput" placeholder="输入待办事项，回车或点击添加" onkeydown="if(event.key==='Enter')addTodoItem()">
-      <input type="date" id="todoDate" title="选择日期（默认今天）">
-      <button class="btn btn-primary btn-sm" onclick="addTodoItem()">＋ 添加</button>
     </div>
     <div class="schedule-todo-lists">
       <div class="todo-card">
@@ -1560,7 +1555,7 @@
         <ul class="todo-list" id="weekTodoList"></ul>
       </div>
       <div class="todo-card">
-        <div class="todo-card-title">📅 本月待办 <span class="todo-count" id="monthTodoCount">0</span></div>
+        <div class="todo-card-title">🗓 本月待办 <span class="todo-count" id="monthTodoCount">0</span></div>
         <ul class="todo-list" id="monthTodoList"></ul>
       </div>
     </div>
@@ -3361,26 +3356,6 @@ function renderSchedule() {
 // ========== Schedule Todo (本周/本月待办) ==========
 const WEEK_NAMES = ['周日','周一','周二','周三','周四','周五','周六'];
 
-function addTodoItem() {
-  const input = document.getElementById('todoInput');
-  const dateInput = document.getElementById('todoDate');
-  const text = input.value.trim();
-  if (!text) { showToast('请输入待办事项', 'error'); return; }
-  let dateKey = dateInput.value;
-  if (!dateKey) {
-    const now = new Date();
-    dateKey = formatDateKey(now);
-  }
-  if (!scheduleItems[dateKey]) scheduleItems[dateKey] = [];
-  scheduleItems[dateKey].push({ text: text, done: false });
-  input.value = '';
-  dateInput.value = '';
-  input.placeholder = '输入待办事项，回车或点击添加';
-  saveScheduleItems();
-  renderSchedule();
-  showToast('待办已添加');
-}
-
 function toggleTodoDone(dateKey, idx) {
   if (!scheduleItems[dateKey] || !scheduleItems[dateKey][idx]) return;
   const item = scheduleItems[dateKey][idx];
@@ -3389,19 +3364,6 @@ function toggleTodoDone(dateKey, idx) {
   saveScheduleItems();
   renderSchedule();
   showToast(scheduleItems[dateKey][idx].done ? '已标记完成，移入已完成' : '已恢复为待办');
-}
-
-function selectTodoDate(dateKey) {
-  const dateInput = document.getElementById('todoDate');
-  const input = document.getElementById('todoInput');
-  if (dateInput) dateInput.value = dateKey;
-  if (input) {
-    input.placeholder = '为 ' + dateKey + ' 添加待办事项，回车或点击添加';
-    input.focus();
-  }
-  const addBox = document.querySelector('.schedule-todo-add');
-  if (addBox) addBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  showToast('已选择 ' + dateKey + '，请输入待办事项');
 }
 
 function deleteTodoItem(dateKey, idx) {
