@@ -1419,7 +1419,7 @@
   <div class="sidebar-item sidebar-logout" onclick="handleLogout()">
     <span class="item-icon">🚪</span> 退出登录
   </div>
-  <div style="padding: 12px 18px 0; font-size: 10px; color: rgba(255,255,255,0.45);">v20260807b · 修复待办列表</div>
+  <div style="padding: 12px 18px 0; font-size: 10px; color: rgba(255,255,255,0.45);">v20260807c · 自动更新版</div>
 </div>
 
 <!-- Main Content -->
@@ -3796,9 +3796,16 @@ document.addEventListener('keydown', (e) => {
 </script>
 
 <script>
+// Service Worker 注册 + 自动更新：页面加载即检查新版本，更新完成后自动刷新
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    navigator.serviceWorker.register('sw.js')
+      .then((reg) => { if (reg) reg.update(); })
+      .catch(() => {});
+  });
+  // SW 接管页面时（新版本就绪）自动刷新，确保用户永远看到最新版
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload();
   });
 }
 </script>
