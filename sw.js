@@ -1,11 +1,13 @@
-/* YJ工作台 Service Worker — HTML 网络优先，静态资源缓存优先 */
-const CACHE = 'yj-workspace-v3';
+/* YJ工作台 Service Worker v4 — HTML 网络优先，静态资源缓存优先 */
+const CACHE = 'yj-workspace-v4';
 const SHELL = [
   './',
   './index.html',
   './manifest.json',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './apple-touch-icon.png',
+  './logo.svg'
 ];
 
 self.addEventListener('install', (e) => {
