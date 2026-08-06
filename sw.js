@@ -1,5 +1,5 @@
 /* YJ工作台 Service Worker — HTML 网络优先，静态资源缓存优先 */
-const CACHE = 'yj-workspace-v2';
+const CACHE = 'yj-workspace-v3';
 const SHELL = [
   './',
   './index.html',
