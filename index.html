@@ -3486,7 +3486,7 @@ function renderTodoLists() {
       if (done) {
         if (d >= monthStart && d <= monthEnd) doneItems.push(entry);
       } else {
-        if (d >= monday && d <= sunday) weekItems.push(entry);
+        if (d >= weekStart && d <= sunday) weekItems.push(entry);
         if (d >= monthStart && d <= monthEnd) monthItems.push(entry);
       }
     });
