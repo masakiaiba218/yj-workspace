@@ -1240,9 +1240,16 @@
   .todo-item .todo-done.undo {
     border-color: var(--orange);
     color: var(--orange);
-    font-size: 13px;
+    background: #fff7ed;
+    width: auto;
+    height: auto;
+    border-radius: 10px;
+    padding: 1px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
   }
-  .todo-item .todo-done.undo:hover { background: #fffbeb; }
+  .todo-item .todo-done.undo:hover { background: #ffedd5; }
   .todo-item .todo-text { flex: 1; word-break: break-all; line-height: 1.4; }
   .todo-item .todo-text.done-text {
     color: var(--gray);
@@ -2350,7 +2357,7 @@ function renderTable() {
         </td>
         <td>
           <div class="action-btns">
-            <button class="btn btn-sm btn-ghost" onclick="toggleDone('${t.id}')">${t.done ? '↩ 取消' : '✓ 完成'}</button>
+            <button class="btn btn-sm btn-ghost" onclick="toggleDone('${t.id}')">${t.done ? '恢复' : '✓ 完成'}</button>
             <button class="btn btn-sm btn-ghost" onclick="openModal('${t.id}')">编辑</button>
             <button class="btn btn-sm btn-danger" onclick="deleteTask('${t.id}')">删除</button>
           </div>
@@ -2386,7 +2393,7 @@ function renderTable() {
         </div>
         ${remark ? `<div class="m-card-remark">${remark}</div>` : ''}
         <div class="m-card-actions">
-          <button class="btn btn-sm btn-ghost" onclick="toggleDone('${t.id}')">${t.done ? '↩ 取消' : '✓ 完成'}</button>
+          <button class="btn btn-sm btn-ghost" onclick="toggleDone('${t.id}')">${t.done ? '恢复' : '✓ 完成'}</button>
           <button class="btn btn-sm btn-ghost" onclick="openModal('${t.id}')">编辑</button>
           <button class="btn btn-sm btn-danger" onclick="deleteTask('${t.id}')">删除</button>
         </div>
@@ -3468,7 +3475,7 @@ function renderTodoLists() {
 
   function itemHtml(it, isDone) {
     const undoBtn = isDone
-      ? '<span class="todo-done undo" title="恢复为待办" onclick="toggleTodoDone(\'' + it.dateKey + '\',' + it.idx + ')">↩</span>'
+      ? '<span class="todo-done undo" title="恢复为待办" onclick="toggleTodoDone(\'' + it.dateKey + '\',' + it.idx + ')">恢复</span>'
       : '<span class="todo-done" title="标记完成" onclick="toggleTodoDone(\'' + it.dateKey + '\',' + it.idx + ')">✓</span>';
     return '<li class="todo-item">' +
       '<span class="todo-date">' + (it.d.getMonth()+1) + '/' + it.d.getDate() + ' ' + WEEK_NAMES[it.d.getDay()] + '</span>' +
@@ -3538,7 +3545,7 @@ function renderDayTodoList() {
       const done = typeof item === 'string' ? false : !!item.done;
       const text = typeof item === 'string' ? item : item.text;
       const undoBtn = done
-        ? '<span class="todo-done undo" title="恢复为待办" onclick="toggleDayTodo(' + idx + ')">↩</span>'
+        ? '<span class="todo-done undo" title="恢复为待办" onclick="toggleDayTodo(' + idx + ')">恢复</span>'
         : '<span class="todo-done" title="标记完成" onclick="toggleDayTodo(' + idx + ')">✓</span>';
       return '<div class="todo-item">' +
         undoBtn +
