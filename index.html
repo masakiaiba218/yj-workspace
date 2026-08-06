@@ -83,6 +83,12 @@
     font-size: 18px;
     flex-shrink: 0;
   }
+  .sidebar-logo .logo-icon-img {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: block;
+    flex-shrink: 0;
+  }
 
   .sidebar-section-label {
     padding: 8px 18px 4px;
@@ -1395,7 +1401,7 @@
 <!-- Sidebar -->
 <div class="sidebar">
 <div class="sidebar-logo">
-  <span class="logo-icon">📋</span>
+  <img src="yj-logo.svg" alt="YJ" class="logo-icon-img">
   YJ
 </div>
 <div class="sidebar-sync">
@@ -1406,7 +1412,7 @@
 </div>
   <div class="sidebar-section-label">功能分区</div>
   <div class="sidebar-item active" onclick="switchSection('work')">
-    <span class="item-icon">💼</span> 工作
+    <span class="item-icon">📋</span> 工作
   </div>
   <div class="sidebar-item" onclick="switchSection('schedule')">
     <span class="item-icon">📅</span> 日程
