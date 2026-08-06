@@ -1404,12 +1404,6 @@
   <div class="sidebar-item" onclick="switchSection('schedule')">
     <span class="item-icon">📅</span> 日程
   </div>
-  <div class="sidebar-item" onclick="switchSection('class')">
-    <span class="item-icon">📚</span> 上课
-  </div>
-  <div class="sidebar-item" onclick="switchSection('other')">
-    <span class="item-icon">📦</span> 其他
-  </div>
   <div class="sidebar-item sidebar-logout" onclick="handleLogout()">
     <span class="item-icon">🚪</span> 退出登录
   </div>
@@ -1567,36 +1561,6 @@
       <div class="todo-card-title">✅ 本月已完成 <span class="todo-count done-count" id="doneTodoCount">0</span></div>
       <ul class="todo-list" id="doneTodoList"></ul>
     </div>
-  </div>
-</div>
-
-<!-- Class Section -->
-<div class="section" id="section-class">
-  <div class="header">
-    <h1>
-      <span class="icon">📚</span>
-      上课
-    </h1>
-  </div>
-  <div class="section-placeholder">
-    <div class="placeholder-icon">📚</div>
-    <div class="placeholder-title">上课分区</div>
-    <div class="placeholder-desc">该分区功能正在规划中，敬请期待</div>
-  </div>
-</div>
-
-<!-- Other Section -->
-<div class="section" id="section-other">
-  <div class="header">
-    <h1>
-      <span class="icon">📦</span>
-      其他
-    </h1>
-  </div>
-  <div class="section-placeholder">
-    <div class="placeholder-icon">📦</div>
-    <div class="placeholder-title">其他分区</div>
-    <div class="placeholder-desc">该分区功能正在规划中，敬请期待</div>
   </div>
 </div>
 
@@ -3140,8 +3104,8 @@ function showToast(msg, type) {
 let currentSection = 'work';
 function switchSection(section) {
   currentSection = section;
-  const sectionMap = { work: 'section-work', schedule: 'section-schedule', class: 'section-class', other: 'section-other' };
-  const itemMap = { work: 0, schedule: 1, class: 2, other: 3 };
+  const sectionMap = { work: 'section-work', schedule: 'section-schedule' };
+  const itemMap = { work: 0, schedule: 1 };
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById(sectionMap[section]).classList.add('active');
   const items = document.querySelectorAll('.sidebar-item');
