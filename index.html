@@ -1601,6 +1601,23 @@
 
 </div><!-- /main-content -->
 
+<!-- 当天待办 Modal -->
+<div class="modal-overlay" id="dayTodoModalOverlay" onclick="if(event.target===this)closeDayTodoModal()" style="display:none;">
+  <div class="modal" style="width:420px;">
+    <div class="modal-header">
+      <h2 id="dayTodoTitle">当天待办</h2>
+      <button class="modal-close" onclick="closeDayTodoModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="day-todo-actions" id="dayTodoList" style="margin-bottom:16px;"></div>
+      <div class="schedule-todo-add" style="box-shadow:none;padding:0;">
+        <input type="text" id="dayTodoInput" placeholder="添加当天待办，回车确认" onkeydown="if(event.key==='Enter')addDayTodo()">
+        <button class="btn btn-primary btn-sm" onclick="addDayTodo()">＋ 添加</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
@@ -3322,8 +3339,10 @@ function renderSchedule() {
       if (calInfo.festival) dayClasses += ' is-festival';
       dayEl.className = dayClasses;
       dayEl.dataset.date = dateKey;
-      dayEl.title = '点击为 ' + dateKey + ' 添加待办事项';
-      dayEl.onclick = () => selectTodoDate(dateKey);
+      // hover 提示：当天待办内容
+      const dayTodos = (scheduleItems[dateKey] || []).map(i => typeof i === 'string' ? i : i.text);
+      dayEl.title = (dayTodos.length > 0 ? '待办：\n' + dayTodos.join('\n') : '当天暂无待办') + '\n（点击查看/添加当天待办）';
+      dayEl.onclick = () => openDayTodoModal(dateKey);
 
       // Build rest/work badge (法定节假日休假/调休上班)
       var badgeHtml = '';
@@ -3504,6 +3523,80 @@ function changeScheduleMonth(delta) {
 function goToCurrentMonth() {
   scheduleMonthOffset = 0;
   renderSchedule();
+}
+
+// ========== 当天待办 Modal ==========
+var dayTodoDate = '';
+
+function openDayTodoModal(dateKey) {
+  dayTodoDate = dateKey;
+  const d = new Date(dateKey);
+  const title = document.getElementById('dayTodoTitle');
+  if (title) title.textContent = (d.getMonth()+1) + '月' + d.getDate() + '日 待办' + (d.getDay() === 0 || d.getDay() === 6 ? '（周末）' : '');
+  const overlay = document.getElementById('dayTodoModalOverlay');
+  if (overlay) overlay.style.display = 'flex';
+  renderDayTodoList();
+}
+
+function closeDayTodoModal() {
+  const overlay = document.getElementById('dayTodoModalOverlay');
+  if (overlay) overlay.style.display = 'none';
+  dayTodoDate = '';
+}
+
+function renderDayTodoList() {
+  const list = document.getElementById('dayTodoList');
+  if (!list || !dayTodoDate) return;
+  const items = scheduleItems[dayTodoDate] || [];
+  if (items.length === 0) {
+    list.innerHTML = '<div class="todo-empty" style="padding:14px;">当天暂无待办</div>';
+  } else {
+    list.innerHTML = items.map(function(item, idx) {
+      const done = typeof item === 'string' ? false : !!item.done;
+      const text = typeof item === 'string' ? item : item.text;
+      const undoBtn = done
+        ? '<span class="todo-done undo" title="恢复为待办" onclick="toggleDayTodo(' + idx + ')">↩</span>'
+        : '<span class="todo-done" title="标记完成" onclick="toggleDayTodo(' + idx + ')">✓</span>';
+      return '<div class="todo-item">' +
+        undoBtn +
+        '<span class="todo-text' + (done ? ' done-text' : '') + '">' + escapeHtml(text) + '</span>' +
+        '<span class="todo-del" onclick="deleteDayTodo(' + idx + ')">✕</span>' +
+        '</div>';
+    }).join('');
+  }
+}
+
+function addDayTodo() {
+  const input = document.getElementById('dayTodoInput');
+  if (!input || !dayTodoDate) return;
+  const text = input.value.trim();
+  if (!text) { showToast('请输入待办事项', 'error'); return; }
+  if (!scheduleItems[dayTodoDate]) scheduleItems[dayTodoDate] = [];
+  scheduleItems[dayTodoDate].push({ text: text, done: false });
+  input.value = '';
+  saveScheduleItems();
+  renderSchedule();
+  renderDayTodoList();
+  showToast('待办已添加');
+}
+
+function toggleDayTodo(idx) {
+  if (!scheduleItems[dayTodoDate] || !scheduleItems[dayTodoDate][idx]) return;
+  const item = scheduleItems[dayTodoDate][idx];
+  if (typeof item === 'string') scheduleItems[dayTodoDate][idx] = { text: item, done: true };
+  else item.done = !item.done;
+  saveScheduleItems();
+  renderSchedule();
+  renderDayTodoList();
+}
+
+function deleteDayTodo(idx) {
+  if (!scheduleItems[dayTodoDate]) return;
+  scheduleItems[dayTodoDate].splice(idx, 1);
+  if (scheduleItems[dayTodoDate].length === 0) delete scheduleItems[dayTodoDate];
+  saveScheduleItems();
+  renderSchedule();
+  renderDayTodoList();
 }
 
 function showScheduleInput(dateKey) {
@@ -3735,6 +3828,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeModal();
     closeCompleteModal();
+    closeDayTodoModal();
   }
 });
 </script>
