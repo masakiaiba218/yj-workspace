@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>YJ的工作台</title>
-<script src="supabase.min.js"></script>
+<!-- Supabase library removed — using native fetch REST API instead -->
 
 <!-- PWA -->
 <link rel="manifest" href="manifest.json">
@@ -1413,7 +1413,7 @@
   <div class="sidebar-item sidebar-logout" onclick="handleLogout()">
     <span class="item-icon">🚪</span> 退出登录
   </div>
-  <div style="padding: 12px 18px 0; font-size: 10px; color: rgba(255,255,255,0.45);">v20260806 · 本地引擎</div>
+  <div style="padding: 12px 18px 0; font-size: 10px; color: rgba(255,255,255,0.45);">v20260807 · 原生引擎</div>
 </div>
 
 <!-- Main Content -->
@@ -1831,17 +1831,16 @@ document.addEventListener('keydown', (e) => {
 const STORAGE_KEY = 'workTimeAlertDashboard_v8';
 const ALERT_DAYS = 3;
 
-// --- Supabase Config ---
+// --- Supabase Config (Direct REST API — no external library needed) ---
 const SUPABASE_URL = 'https://khkmxfmcveifvdsfyawa.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Y-3gLyHewuOJ9qwhkdhoOA_8zsm1jRQ';
-let supabaseClient = null;
+const SB_REST = SUPABASE_URL + '/rest/v1';
+const SB_HEADERS = {
+  'apikey': SUPABASE_KEY,
+  'Authorization': 'Bearer ' + SUPABASE_KEY,
+  'Content-Type': 'application/json'
+};
 let isSyncing = false;
-
-try {
-  supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-} catch(e) {
-  console.warn('Supabase init failed:', e);
-}
 
 // --- Field mapping: JS camelCase <-> DB snake_case ---
 function taskToRow(t) {
@@ -1895,19 +1894,15 @@ function setSyncStatus(status, text) {
   });
 }
 
-// --- Cloud Sync Functions ---
+// --- Cloud Sync Functions (Direct REST API) ---
 async function syncLoadFromCloud() {
-  if (!supabaseClient) return null;
   try {
-    const { data, error } = await supabaseClient
-      .from('tasks')
-      .select('*')
-      .order('created_at', { ascending: true });
-    if (error) throw error;
-    if (data && data.length > 0) {
-      return data.map(rowToTask);
-    }
-    return [];
+    const resp = await fetch(`${SB_REST}/tasks?select=*&order=created_at.asc`, {
+      headers: SB_HEADERS
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    return data.length > 0 ? data.map(rowToTask) : [];
   } catch(e) {
     console.warn('Cloud load failed:', e);
     return null;
@@ -1915,12 +1910,13 @@ async function syncLoadFromCloud() {
 }
 
 async function syncUpsertTask(task) {
-  if (!supabaseClient) return;
   try {
-    const { error } = await supabaseClient
-      .from('tasks')
-      .upsert(taskToRow(task));
-    if (error) throw error;
+    const resp = await fetch(`${SB_REST}/tasks`, {
+      method: 'POST',
+      headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify(taskToRow(task))
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
     setSyncStatus('synced', '已同步');
   } catch(e) {
     console.warn('Cloud upsert failed:', e);
@@ -1929,13 +1925,12 @@ async function syncUpsertTask(task) {
 }
 
 async function syncDeleteTask(id) {
-  if (!supabaseClient) return;
   try {
-    const { error } = await supabaseClient
-      .from('tasks')
-      .delete()
-      .eq('id', id);
-    if (error) throw error;
+    const resp = await fetch(`${SB_REST}/tasks?id=eq.${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: SB_HEADERS
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
     setSyncStatus('synced', '已同步');
   } catch(e) {
     console.warn('Cloud delete failed:', e);
@@ -2811,41 +2806,56 @@ function loadRecycleBin() {
   return [];
 }
 
-function pushRecycleToCloud(bin) {
-  if (!supabaseClient) return;
+async function pushRecycleToCloud(bin) {
+  if (!bin || bin.length === 0) return;
   const rows = bin.map(item => ({
     id: item.id,
     task: JSON.stringify(item),
     deleted_at: item.deletedAt || new Date().toISOString()
   }));
-  if (rows.length === 0) return;
-  supabaseClient.from(RECYCLE_TABLE).upsert(rows).then(({ error }) => {
-    if (error) { console.warn('Recycle cloud sync failed:', error); setSyncStatus('offline', '离线'); }
-    else { setSyncStatus('synced', '已同步'); }
-  });
+  try {
+    const resp = await fetch(`${SB_REST}/${RECYCLE_TABLE}`, {
+      method: 'POST',
+      headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify(rows)
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    setSyncStatus('synced', '已同步');
+  } catch(e) {
+    console.warn('Recycle cloud sync failed:', e);
+    setSyncStatus('offline', '离线');
+  }
 }
 
-function deleteRecycleFromCloud(ids) {
-  if (!supabaseClient || !ids || ids.length === 0) return;
-  supabaseClient.from(RECYCLE_TABLE).delete().in('id', ids).then(({ error }) => {
-    if (error) console.warn('Recycle cloud delete failed:', error);
-  });
+async function deleteRecycleFromCloud(ids) {
+  if (!ids || ids.length === 0) return;
+  const idList = ids.map(id => `"${id}"`).join(',');
+  try {
+    const resp = await fetch(`${SB_REST}/${RECYCLE_TABLE}?id=in.(${idList})`, {
+      method: 'DELETE',
+      headers: SB_HEADERS
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  } catch(e) {
+    console.warn('Recycle cloud delete failed:', e);
+  }
 }
 
 async function syncRecycleFromCloud() {
-  if (!supabaseClient) { updateRecycleBadge(); return; }
   try {
-    const { data, error } = await supabaseClient.from(RECYCLE_TABLE).select('*');
-    if (!error && data) {
-      if (data.length > 0) {
-        const bin = data.map(r => {
-          const task = typeof r.task === 'string' ? JSON.parse(r.task) : r.task;
-          return { ...task, deletedAt: r.deleted_at || task.deletedAt || new Date().toISOString() };
-        });
-        localStorage.setItem(RECYCLE_KEY, JSON.stringify(bin));
-      } else if (localStorage.getItem(RECYCLE_KEY)) {
-        pushRecycleToCloud(loadRecycleBin());
-      }
+    const resp = await fetch(`${SB_REST}/${RECYCLE_TABLE}?select=*`, {
+      headers: SB_HEADERS
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    if (data.length > 0) {
+      const bin = data.map(r => {
+        const task = typeof r.task === 'string' ? JSON.parse(r.task) : r.task;
+        return { ...task, deletedAt: r.deleted_at || task.deletedAt || new Date().toISOString() };
+      });
+      localStorage.setItem(RECYCLE_KEY, JSON.stringify(bin));
+    } else if (localStorage.getItem(RECYCLE_KEY)) {
+      pushRecycleToCloud(loadRecycleBin());
     }
   } catch(e) { console.warn('Recycle cloud load failed:', e); }
   updateRecycleBadge();
@@ -3235,17 +3245,18 @@ const SCHEDULE_TABLE = 'schedule_items';
 async function loadScheduleItems() {
   let cloudOk = false;
   try {
-    if (supabaseClient) {
-      const { data, error } = await supabaseClient.from(SCHEDULE_TABLE).select('*');
-      if (!error && data) {
-        const obj = {};
-        data.forEach(r => {
-          obj[r.id] = (typeof r.items === 'string' ? JSON.parse(r.items) : r.items) || [];
-        });
-        scheduleItems = obj;
-        localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(scheduleItems));
-        cloudOk = true;
-      }
+    const resp = await fetch(`${SB_REST}/${SCHEDULE_TABLE}?select=*`, {
+      headers: SB_HEADERS
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      const obj = {};
+      data.forEach(r => {
+        obj[r.id] = (typeof r.items === 'string' ? JSON.parse(r.items) : r.items) || [];
+      });
+      scheduleItems = obj;
+      localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(scheduleItems));
+      cloudOk = true;
     }
   } catch(e) { console.warn('Schedule cloud load failed:', e); }
   if (!cloudOk) {
@@ -3254,19 +3265,26 @@ async function loadScheduleItems() {
   }
 }
 
-function saveScheduleItems() {
+async function saveScheduleItems() {
   localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(scheduleItems));
-  if (!supabaseClient) return;
   const rows = Object.keys(scheduleItems).map(date => ({
     id: date,
     items: scheduleItems[date] || [],
     updated_at: new Date().toISOString()
   }));
   if (rows.length === 0) return;
-  supabaseClient.from(SCHEDULE_TABLE).upsert(rows).then(({ error }) => {
-    if (error) { console.warn('Schedule cloud sync failed:', error); setSyncStatus('offline', '离线'); }
-    else { setSyncStatus('synced', '已同步'); }
-  });
+  try {
+    const resp = await fetch(`${SB_REST}/${SCHEDULE_TABLE}`, {
+      method: 'POST',
+      headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify(rows)
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    setSyncStatus('synced', '已同步');
+  } catch(e) {
+    console.warn('Schedule cloud sync failed:', e);
+    setSyncStatus('offline', '离线');
+  }
 }
 
 function renderSchedule() {
@@ -3657,17 +3675,20 @@ async function manualSync() {
       success = true;
     }
     // 2. 日程数据
-    if (supabaseClient) {
-      const { data, error } = await supabaseClient.from(SCHEDULE_TABLE).select('*');
-      if (!error && data) {
+    try {
+      const schedResp = await fetch(`${SB_REST}/${SCHEDULE_TABLE}?select=*`, {
+        headers: SB_HEADERS
+      });
+      if (schedResp.ok) {
+        const schedData = await schedResp.json();
         const obj = {};
-        data.forEach(r => { obj[r.id] = (typeof r.items === 'string' ? JSON.parse(r.items) : r.items) || []; });
+        schedData.forEach(r => { obj[r.id] = (typeof r.items === 'string' ? JSON.parse(r.items) : r.items) || []; });
         scheduleItems = obj;
         localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(scheduleItems));
         renderSchedule();
         success = true;
       }
-    }
+    } catch(e) { console.warn('Schedule sync failed:', e); }
     // 3. 回收站数据
     await syncRecycleFromCloud();
     if (success) {
@@ -3675,11 +3696,12 @@ async function manualSync() {
       showToast('整个工作台已同步');
     } else {
       setSyncStatus('offline', '离线');
-      showToast('同步失败，请检查网络', 'error');
+      showToast('同步失败 — 网络或云端配置问题', 'error');
     }
   } catch (e) {
+    console.error('Sync error:', e);
     setSyncStatus('offline', '离线');
-    showToast('同步失败，请检查网络', 'error');
+    showToast('同步失败: ' + (e.message || '未知错误'), 'error');
   }
 }
 
@@ -3794,22 +3816,23 @@ function initApp() {
       setSyncStatus('synced', '已同步');
     }
     // 日程云端同步（有变化才重渲染）
-    if (supabaseClient) {
-      try {
-        const { data, error } = await supabaseClient.from(SCHEDULE_TABLE).select('*');
-        if (!error && data) {
-          const obj = {};
-          data.forEach(r => { obj[r.id] = (typeof r.items === 'string' ? JSON.parse(r.items) : r.items) || []; });
-          if (JSON.stringify(obj) !== JSON.stringify(scheduleItems)) {
-            scheduleItems = obj;
-            localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(scheduleItems));
-            renderSchedule();
-          }
+    try {
+      const schedResp = await fetch(`${SB_REST}/${SCHEDULE_TABLE}?select=*`, {
+        headers: SB_HEADERS
+      });
+      if (schedResp.ok) {
+        const schedData = await schedResp.json();
+        const obj = {};
+        schedData.forEach(r => { obj[r.id] = (typeof r.items === 'string' ? JSON.parse(r.items) : r.items) || []; });
+        if (JSON.stringify(obj) !== JSON.stringify(scheduleItems)) {
+          scheduleItems = obj;
+          localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(scheduleItems));
+          renderSchedule();
         }
-      } catch(e) {}
-      // 回收站云端同步
-      await syncRecycleFromCloud();
-    }
+      }
+    } catch(e) {}
+    // 回收站云端同步
+    await syncRecycleFromCloud();
   }, 60000);
 }
 
