@@ -1,0 +1,16 @@
+name: Keep Workbench Alive
+
+on:
+  schedule:
+    # 每周一 03:00 UTC = 北京时间每周一 11:00
+    - cron: '0 3 * * 1'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send HTTP request to workbench
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" https://da7cfc06c9104313978dbe365c69213a.bj3.agentos-app.net/)
+          echo "HTTP status: $code"
